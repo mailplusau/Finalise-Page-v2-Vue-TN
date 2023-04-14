@@ -13,20 +13,21 @@ const clientScriptFilename = 'mp_cl_finalise_page_tn_v2_vue.js';
 let NS_MODULES = {};
 
 
-define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log'], (serverWidget, render, search, file, log) => {
-    NS_MODULES = {serverWidget, render, search, file, log};
+define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record'], (serverWidget, render, search, file, log, record) => {
+    NS_MODULES = {serverWidget, render, search, file, log, record};
     
     const onRequest = ({request, response}) => {
         if (request.method === "GET") {
 
-            if (!_handleDataRequests(request.parameters['requestData'], response)){
+            if (!_handleGETRequests(request.parameters['requestData'], response)){
                 // Render the page using either inline form or standalone page
                 // _getStandalonePage(response)
                 _getInlineForm(response)
             }
 
         } else if (request.method === "POST") { // Request method should be POST (?)
-            _writeResponseJson(response, {test: 'test response from post', params: request.parameters, body: JSON.parse(request.body)});
+            _handlePOSTRequests(JSON.parse(request.body), response);
+            // _writeResponseJson(response, {test: 'test response from post', params: request.parameters, body: request.body});
         } else {
             log.debug({
                 title: "request method type",
@@ -111,20 +112,37 @@ function _getHtmlTemplate(htmlPageName) {
 }
 
 
-function _handleDataRequests(request, response) {
+function _handleGETRequests(request, response) {
     if (!request) return false;
 
+    let {log} = NS_MODULES;
+
     try {
-        let {operation, data} = JSON.parse(request);
+        let {operation, requestParams} = JSON.parse(request);
 
         if (!operation) throw 'No operation specified.';
 
-        operations[operation](response, data);
+        getOperations[operation](response, requestParams);
     } catch (e) {
-        _writeResponseJson(response, {error: e})
+        log.debug({title: "_handleGETRequests", details: `error: ${e}`});
+        _writeResponseJson(response, {error: `${e}`})
     }
 
     return true;
+}
+
+function _handlePOSTRequests({operation, requestParams}, response) {
+    let {log} = NS_MODULES;
+
+    try {
+        if (!operation) throw 'No operation specified.';
+
+        // _writeResponseJson(response, {source: '_handlePOSTRequests', operation, requestParams});
+        postOperations[operation](response, requestParams);
+    } catch (e) {
+        log.debug({title: "_handlePOSTRequests", details: `error: ${e}`});
+        _writeResponseJson(response, {error: `${e}`})
+    }
 }
 
 function _writeResponseJson(response, body) {
@@ -135,6 +153,71 @@ function _writeResponseJson(response, body) {
     });
 }
 
-const operations = {
-    
+const getOperations = {
+    'getCustomerDetails': function (response, {customerId, fieldIds}) {
+        _writeResponseJson(response, sharedFunctions.getCustomerData(customerId, fieldIds));
+    },
+    'getSelectOptions' : function (response, {id, type, valueColumnName, textColumnName}) {
+        let {search} = NS_MODULES;
+        let data = [];
+
+        search.create({
+            id, type,
+            columns: [{name: valueColumnName}, {name: textColumnName}]
+        }).run().each(result => {
+            data.push({value: result.getValue(valueColumnName), text: result.getValue(textColumnName)});
+            return true;
+        });
+
+        _writeResponseJson(response, data);
+    },
+}
+
+const postOperations = {
+    'saveCustomerDetails' : function (response, {customerId, customerData, fieldIds}) {
+        let {record} = NS_MODULES;
+
+        let customerRecord = record.load({
+            type: record.Type.CUSTOMER,
+            id: customerId,
+            isDynamic: true
+        });
+
+        for (let fieldId in customerData)
+            customerRecord.setValue({fieldId, value: customerData[fieldId]});
+
+        customerRecord.save({ignoreMandatoryFields: true});
+
+        if (customerData['custentity_old_customer']) { // update record of old customer if custentity_old_customer is specified
+            let oldCustomerRecord = record.load({
+                type: record.Type.CUSTOMER,
+                id: customerData['custentity_old_customer'],
+            });
+
+            oldCustomerRecord.setValue({fieldId: 'custentity_new_customer', value: customerId});
+            oldCustomerRecord.setValue({fieldId: 'custentity_new_zee', value: customerData['partner']});
+
+            oldCustomerRecord.save({ignoreMandatoryFields: true});
+        }
+
+        _writeResponseJson(response, sharedFunctions.getCustomerData(customerId, fieldIds));
+    },
+};
+
+
+const sharedFunctions = {
+    getCustomerData(customerId, fieldIds) {
+        let {record} = NS_MODULES;
+        let data = {};
+
+        let customerRecord = record.load({
+            type: record.Type.CUSTOMER,
+            id: customerId,
+        });
+
+        for (let fieldId of fieldIds)
+            data[fieldId] = customerRecord.getValue({ fieldId });
+
+        return data;
+    }
 }
