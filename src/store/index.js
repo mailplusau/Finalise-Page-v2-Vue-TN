@@ -1,10 +1,14 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
+import Vue from 'vue';
+import Vuex from 'vuex';
 import modules from './modules';
 
 Vue.use(Vuex)
 
 const state = {
+    customerId: null,
+    salesRecordId: null,
+    callCenterMode: false,
+
     globalModal: {
         open: false,
         title: '',
@@ -13,35 +17,13 @@ const state = {
         persistent: true,
         isError: false
     },
-    industries: [],
-    leadSources: [],
-    franchisees: [],
-    roles: [],
-    statuses: [
-        {value: 6, text: 'SUSPECT - New'},
-        {value: 57, text: 'SUSPECT - Hot Lead'},
-        {value: 13, text: 'CUSTOMER - Signed'},
-    ],
-    states: [
-        {value: 1, text: 'NSW'},
-        {value: 2, text: 'QLD'},
-        {value: 3, text: 'VIC'},
-        {value: 4, text: 'SA'},
-        {value: 5, text: 'TAS'},
-        {value: 6, text: 'ACT'},
-        {value: 7, text: 'WA'},
-        {value: 8, text: 'NT'},
-        {value: 9, text: 'NZ'},
-    ],
 };
 
 const getters = {
-    industries : state => state.industries,
-    leadSources : state => state.leadSources,
-    franchisees : state => state.franchisees.filter(item => item.text.toLowerCase().substring(0, 4) !== 'old '), // filter out franchisees with name starting with 'old'
-    roles : state => state.roles,
-    statuses : state => state.statuses,
-    states : state => state.states,
+    customerId : state => state.customerId,
+    salesRecordId : state => state.salesRecordId,
+    callCenterMode : state => state.callCenterMode,
+
     globalModal : state => state.globalModal,
 };
 
@@ -54,14 +36,35 @@ const mutations = {
         state.globalModal.open = true;
         state.globalModal.persistent = true;
         state.globalModal.isError = true;
+    },
+    displayBusyGlobalModal : (state, {title, message, open}) => {
+        state.globalModal.title = title;
+        state.globalModal.body = message;
+        state.globalModal.busy = open;
+        state.globalModal.open = open;
+        state.globalModal.persistent = false;
+        state.globalModal.isError = false;
     }
 };
 
 const actions = {
-    init : () => {
-        document.querySelector('h1.uir-record-type').setHTML('');
-    }
+    init : context => {
+        _readUrlParams(context);
+
+        context.dispatch('customer/init').then();
+        context.dispatch('misc/init').then();
+    },
 };
+
+function _readUrlParams(context) {
+    const params = new Proxy(new URLSearchParams(window.location.search), {
+        get: (searchParams, prop) => searchParams.get(prop),
+    });
+
+    context.state.customerId = params['recid'] || null;
+    context.state.salesRecordId = params['sales_record_id'] || null;
+    context.state.callCenterMode = (!!params['callcenter'] && params['callcenter'] === 'T');
+}
 
 const store = new Vuex.Store({
   state,
