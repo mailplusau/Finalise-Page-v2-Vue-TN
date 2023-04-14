@@ -1,17 +1,23 @@
 <template>
-    <div id="app">
-        <img alt="Vue logo" src="./assets/logo.png">
-        <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <div id="app" class="container">
+        <CustomerDetails />
+
+        <GlobalNoticeModal />
     </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import GlobalNoticeModal from "@/components/GlobalNoticeModal";
+import CustomerDetails from "@/views/customer/Main";
 
 export default {
     name: 'App',
     components: {
-        HelloWorld
+        GlobalNoticeModal,
+        CustomerDetails
+    },
+    beforeCreate() {
+        this.$store.dispatch('init');
     },
     mounted() {
         this.registerCustomValidationRules();
