@@ -2,7 +2,11 @@
     <div id="app" class="container">
         <CustomerDetails />
 
-        <CustomerAddresses />
+        <div class="row justify-content-center align-items-stretch mt-3">
+            <CustomerAddresses />
+
+            <CustomerContacts />
+        </div>
 
         <GlobalNoticeModal />
     </div>
@@ -12,6 +16,7 @@
 import GlobalNoticeModal from "@/components/GlobalNoticeModal";
 import CustomerDetails from "@/views/customer/Main";
 import CustomerAddresses from "@/views/addresses/Main";
+import CustomerContacts from "@/views/contacts/Main";
 
 export default {
     name: 'App',
@@ -19,6 +24,7 @@ export default {
         GlobalNoticeModal,
         CustomerDetails,
         CustomerAddresses,
+        CustomerContacts,
     },
     beforeCreate() {
         this.$store.dispatch('init');
