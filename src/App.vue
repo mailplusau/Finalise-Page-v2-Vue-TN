@@ -2,6 +2,8 @@
     <div id="app" class="container">
         <CustomerDetails />
 
+        <CustomerAddresses />
+
         <GlobalNoticeModal />
     </div>
 </template>
@@ -9,12 +11,14 @@
 <script>
 import GlobalNoticeModal from "@/components/GlobalNoticeModal";
 import CustomerDetails from "@/views/customer/Main";
+import CustomerAddresses from "@/views/addresses/Main";
 
 export default {
     name: 'App',
     components: {
         GlobalNoticeModal,
-        CustomerDetails
+        CustomerDetails,
+        CustomerAddresses,
     },
     beforeCreate() {
         this.$store.dispatch('init');
