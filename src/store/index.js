@@ -56,6 +56,11 @@ const actions = {
         context.dispatch('contacts/init').then();
         context.dispatch('misc/init').then();
     },
+    handleException : (context, {title, message}) => {
+        context.commit('displayErrorGlobalModal', {
+            title, message
+        })
+    }
 };
 
 function _readUrlParams(context) {

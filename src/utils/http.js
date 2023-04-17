@@ -1,4 +1,5 @@
 import superagent from "superagent";
+import store from "@/store";
 
 export default {
     async get(operation, requestParams) {
@@ -6,11 +7,7 @@ export default {
             superagent.get(window.location.href)
                 .set("Content-Type", "application/json")
                 .query({requestData: JSON.stringify({operation, requestParams})})
-                .end((err, res) => {
-                    if (err) reject(err);
-                    else if (res.body.error) reject(res.body.error);
-                    else resolve(res.body);
-                });
+                .end((err, res) => { _handle(err, res, reject, resolve); });
         });
     },
     async post(operation, requestParams) {
@@ -19,11 +16,16 @@ export default {
                 .set("Content-Type", "application/json")
                 .set("Accept", "json")
                 .send({operation, requestParams})
-                .end((err, res) => {
-                    if (err) reject(err);
-                    else if (res.body.error) reject(res.body.error);
-                    else resolve(res.body);
-                });
+                .end((err, res) => { _handle(err, res, reject, resolve); });
         });
     }
+}
+
+function _handle(err, res, reject, resolve) {
+    let errorMessage = err || (res.body.error || null);
+
+    if (errorMessage) {
+        store.dispatch('handleException', {title: 'An error occurred', message: errorMessage}, {root: true}).then();
+        reject(errorMessage);
+    } else resolve(res.body);
 }
