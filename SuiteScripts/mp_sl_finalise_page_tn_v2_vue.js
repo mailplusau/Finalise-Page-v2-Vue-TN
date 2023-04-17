@@ -155,6 +155,8 @@ function _writeResponseJson(response, body) {
 
 const getOperations = {
     'getCustomerDetails': function (response, {customerId, fieldIds}) {
+        if (!customerId) return _writeResponseJson(response, {error: `Invalid Customer ID: ${customerId}`});
+        
         _writeResponseJson(response, sharedFunctions.getCustomerData(customerId, fieldIds));
     },
     'getCustomerAddresses' : function (response, {customerId}) {
@@ -162,6 +164,8 @@ const getOperations = {
         let data = [];
         let fieldIds = ['addr1', 'addr2', 'city', 'state', 'zip', 'country', 'addressee', 'custrecord_address_lat', 'custrecord_address_lon', 'custrecord_address_ncl'];
         let sublistFieldIds = ['internalid', 'label', 'defaultshipping', 'defaultbilling', 'isresidential'];
+
+        if (!customerId) return _writeResponseJson(response, {error: `Invalid Customer ID: ${customerId}`});
 
         let customerRecord = record.load({
             type: record.Type.CUSTOMER,
@@ -372,38 +376,41 @@ function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipp
     let {record} = NS_MODULES;
     let addressToUpdate, fieldIdToUpdate;
 
-    if (addressSublistForm.defaultshipping && currentDefaultShipping !== addressSublistForm.internalid && currentDefaultShipping !== null) {
-        addressToUpdate = currentDefaultShipping;
-        fieldIdToUpdate = 'defaultshipping';
-    }
-
-    if (addressSublistForm.defaultbilling && currentDefaultBilling !== addressSublistForm.internalid && currentDefaultBilling !== null) {
-        addressToUpdate = currentDefaultBilling;
-        fieldIdToUpdate = 'defaultbilling';
-    }
-
-    if (!addressToUpdate || !fieldIdToUpdate) return;
-
     let customerRecord = record.load({
         type: record.Type.CUSTOMER,
         id: customerId,
         isDynamic: true
     });
 
-    let line = customerRecord.findSublistLineWithValue({sublistId: 'addressbook', fieldId: 'internalid', value: addressToUpdate});
-    customerRecord.selectLine({sublistId: 'addressbook', line});
-    customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: fieldIdToUpdate, value: false});
+    let update = () => {
+        let line = customerRecord.findSublistLineWithValue({sublistId: 'addressbook', fieldId: 'internalid', value: addressToUpdate});
+        customerRecord.selectLine({sublistId: 'addressbook', line});
+        customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: fieldIdToUpdate, value: false});
 
-    if (customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId: 'defaultshipping'})) {
-        customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Site Address'});
-    } else if (customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId: 'defaultbilling'})) {
-        customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Billing Address'});
-    } else if (customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId: 'isresidential'})) {
-        customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Postal Address'});
-    } else {
-        customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Other Address'});
+        if (customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId: 'defaultshipping'})) {
+            customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Site Address'});
+        } else if (customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId: 'defaultbilling'})) {
+            customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Billing Address'});
+        } else if (customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId: 'isresidential'})) {
+            customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Postal Address'});
+        } else {
+            customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Other Address'});
+        }
+
+        customerRecord.commitLine({sublistId: 'addressbook'});
     }
 
-    customerRecord.commitLine({sublistId: 'addressbook'});
+    if (addressSublistForm.defaultshipping && currentDefaultShipping !== addressSublistForm.internalid && currentDefaultShipping !== null) {
+        addressToUpdate = currentDefaultShipping;
+        fieldIdToUpdate = 'defaultshipping';
+        update();
+    }
+
+    if (addressSublistForm.defaultbilling && currentDefaultBilling !== addressSublistForm.internalid && currentDefaultBilling !== null) {
+        addressToUpdate = currentDefaultBilling;
+        fieldIdToUpdate = 'defaultbilling';
+        update();
+    }
+
     customerRecord.save({ignoreMandatoryFields: true});
 }
