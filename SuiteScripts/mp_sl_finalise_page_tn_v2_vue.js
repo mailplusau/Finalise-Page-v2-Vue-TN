@@ -193,6 +193,60 @@ const getOperations = {
 
         _writeResponseJson(response, data);
     },
+    'getCustomerContacts' : function (response, {customerId}) {
+        let {search} = NS_MODULES;
+        let contactForm = [
+            'internalid',
+            'salutation',
+            'firstname',
+            'lastname',
+            'phone',
+            'email',
+            'contactrole',
+            'title',
+            'company',
+            'entityid',
+            'custentity_connect_admin',
+            'custentity_connect_user',
+        ];
+        let data = [];
+
+        if (!customerId) return _writeResponseJson(response, {error: `Invalid Customer ID: ${customerId}`});
+
+        let contactSearch = search.load({
+            id: 'customsearch_salesp_contacts',
+            type: 'contact'
+        });
+
+        contactSearch.filters.push(search.createFilter({
+            name: 'internalid',
+            join: 'CUSTOMER',
+            operator: search.Operator.ANYOF,
+            values: customerId
+        }));
+
+        contactSearch.filters.push(search.createFilter({
+            name: 'isinactive',
+            operator: search.Operator.IS,
+            values: false
+        }));
+
+        let result = contactSearch.run();
+
+        result.each((item) => {
+            let contactEntry = {};
+
+            for (let fieldId of contactForm) {
+                contactEntry[fieldId] = item.getValue({ name: fieldId });
+            }
+
+            data.push(contactEntry);
+
+            return true;
+        })
+
+        _writeResponseJson(response, data);
+    },
     'getSelectOptions' : function (response, {id, type, valueColumnName, textColumnName}) {
         let {search} = NS_MODULES;
         let data = [];
@@ -233,15 +287,15 @@ const getOperations = {
         });
 
         //NCL Type: AusPost(1), Toll(2), StarTrack(7)
-        NCLSearch.filters.push(NS_MODULES.search.createFilter({
+        NCLSearch.filters.push(search.createFilter({
             name: 'custrecord_noncust_location_type',
-            operator: NS_MODULES.search.Operator.ANYOF,
+            operator: search.Operator.ANYOF,
             values: [1, 2, 7]
         }))
 
-        NCLSearch.filters.push(NS_MODULES.search.createFilter({
+        NCLSearch.filters.push(search.createFilter({
             name: 'custrecord_ap_lodgement_site_state',
-            operator: NS_MODULES.search.Operator.IS,
+            operator: search.Operator.IS,
             values: stateIndex, // NSW
         }))
 
@@ -351,6 +405,43 @@ const postOperations = {
         customerRecord.save({ignoreMandatoryFields: true});
 
         _writeResponseJson(response, 'Address Deleted!');
+    },
+    'saveContact' : function (response, {contactData}) {
+        if (!contactData) return _writeResponseJson(response, {error: `Missing params [contactData]: ${contactData}`});
+
+        let {record} = NS_MODULES;
+        let contactRecord;
+
+        if (contactData.internalid) {
+            contactRecord = record.load({
+                type: record.Type.CONTACT,
+                id: contactData.internalid,
+                isDynamic: true
+            });
+        } else contactRecord = record.create({ type: record.Type.CONTACT });
+
+        for (let fieldId in contactData)
+            contactRecord.setValue({fieldId, value: contactData[fieldId]});
+
+        contactRecord.save({ignoreMandatoryFields: true});
+
+        _writeResponseJson(response, 'Contact Saved!');
+    },
+    'setContactAsInactive' : function (response, {contactInternalId}) {
+        if (!contactInternalId) return _writeResponseJson(response, {error: `Missing params [contactInternalId]: ${contactInternalId}`});
+
+        let {record} = NS_MODULES;
+        
+        let contactRecord = record.load({
+            type: record.Type.CONTACT,
+            id: contactInternalId,
+        });
+
+        contactRecord.setValue({fieldId: 'isinactive', value: true});
+
+        contactRecord.save({ignoreMandatoryFields: true});
+
+        _writeResponseJson(response, 'Contact Delete!');
     }
 };
 
