@@ -52,6 +52,7 @@ const actions = {
         _readUrlParams(context);
 
         context.dispatch('customer/init').then();
+        context.dispatch('addresses/init').then();
         context.dispatch('misc/init').then();
     },
 };
