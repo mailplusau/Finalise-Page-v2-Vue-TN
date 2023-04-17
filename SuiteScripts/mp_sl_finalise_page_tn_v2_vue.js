@@ -157,6 +157,38 @@ const getOperations = {
     'getCustomerDetails': function (response, {customerId, fieldIds}) {
         _writeResponseJson(response, sharedFunctions.getCustomerData(customerId, fieldIds));
     },
+    'getCustomerAddresses' : function (response, {customerId}) {
+        let {record} = NS_MODULES;
+        let data = [];
+        let fieldIds = ['addr1', 'addr2', 'city', 'state', 'zip', 'country', 'addressee', 'custrecord_address_lat', 'custrecord_address_lon', 'custrecord_address_ncl'];
+        let sublistFieldIds = ['internalid', 'label', 'defaultshipping', 'defaultbilling', 'isresidential'];
+
+        let customerRecord = record.load({
+            type: record.Type.CUSTOMER,
+            id: customerId,
+            isDynamic: true
+        });
+
+        let lineCount = customerRecord.getLineCount({sublistId: 'addressbook'});
+
+        for (let line = 0; line < lineCount; line++) {
+            customerRecord.selectLine({sublistId: 'addressbook', line});
+            let entry = {};
+
+            for (let fieldId of sublistFieldIds) {
+                entry[fieldId] = customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId})
+            }
+
+            let addressSubrecord = customerRecord.getCurrentSublistSubrecord({sublistId: 'addressbook', fieldId: 'addressbookaddress'});
+            for (let fieldId of fieldIds) {
+                entry[fieldId] = addressSubrecord.getValue({ fieldId })
+            }
+
+            data.push(entry);
+        }
+
+        _writeResponseJson(response, data);
+    },
     'getSelectOptions' : function (response, {id, type, valueColumnName, textColumnName}) {
         let {search} = NS_MODULES;
         let data = [];
@@ -171,6 +203,64 @@ const getOperations = {
 
         _writeResponseJson(response, data);
     },
+    'getPostalLocationOptions' : function (response, {stateIndex}) {
+        let {search} = NS_MODULES;
+        let data = [];
+        let postalLocationForm = [
+            'name',
+            'internalid',
+            'custrecord_ap_lodgement_addr1',
+            'custrecord_ap_lodgement_addr2',
+            'custrecord_ap_lodgement_lat',
+            'custrecord_ap_lodgement_long',
+            'custrecord_ap_lodgement_postcode',
+            'custrecord_ap_lodgement_site_phone',
+            'custrecord_ap_lodgement_site_state', // getText for this one
+            'custrecord_ap_lodgement_suburb',
+            'custrecord_ap_lodgement_supply',
+            'custrecord_ncl_monthly_fee',
+            'custrecord_ncl_site_access_code',
+            'custrecord_noncust_location_type', // getText for this one too
+        ];
+
+        let NCLSearch = search.load({
+            type: 'customrecord_ap_lodgment_location',
+            id: 'customsearch_smc_noncust_location'
+        });
+
+        //NCL Type: AusPost(1), Toll(2), StarTrack(7)
+        NCLSearch.filters.push(NS_MODULES.search.createFilter({
+            name: 'custrecord_noncust_location_type',
+            operator: NS_MODULES.search.Operator.ANYOF,
+            values: [1, 2, 7]
+        }))
+
+        NCLSearch.filters.push(NS_MODULES.search.createFilter({
+            name: 'custrecord_ap_lodgement_site_state',
+            operator: NS_MODULES.search.Operator.IS,
+            values: stateIndex, // NSW
+        }))
+
+        let results = NCLSearch.run();
+        
+        let temp = 0;
+        while (temp < 5) {
+            let subset = results.getRange({start: temp * 1000, end: temp * 1000 + 1000});
+            for (let postalLocation of subset) { // we can also use getAllValues() on one of these to see all available fields
+                let entry = {};
+                for (let fieldId of postalLocationForm) {
+                    if (['custrecord_noncust_location_type', 'custrecord_ap_lodgement_site_state'].includes(fieldId)) {
+                        entry[fieldId] = postalLocation.getText({name: fieldId});
+                    } else entry[fieldId] = postalLocation.getValue({name: fieldId});
+                }
+                data.push(entry);
+            }
+            if (subset.length < 1000) break;
+            temp++;
+        }
+
+        _writeResponseJson(response, data);
+    }
 }
 
 const postOperations = {
@@ -202,6 +292,62 @@ const postOperations = {
 
         _writeResponseJson(response, sharedFunctions.getCustomerData(customerId, fieldIds));
     },
+    'saveAddress' : function (response, {customerId, currentDefaultShipping, currentDefaultBilling, addressForm, addressSublistForm}) {
+        let {record} = NS_MODULES;
+        let addressData = {...addressForm, ...addressSublistForm};
+        
+        _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipping, currentDefaultBilling, addressSublistForm);
+
+        let customerRecord = record.load({
+            type: record.Type.CUSTOMER,
+            id: customerId,
+            isDynamic: true
+        });
+        
+        // Select an existing or create a new line the customerRecord's sublist
+        if (addressData.internalid) { // Edit existing address
+            let line = customerRecord.findSublistLineWithValue({sublistId: 'addressbook', fieldId: 'internalid', value: addressData.internalid});
+            customerRecord.selectLine({sublistId: 'addressbook', line});
+        } else { // Save new address
+            customerRecord.selectNewLine({sublistId: 'addressbook'});
+        }
+
+        // Fill the sublist's fields using property names of addressSublistForm as reference
+        for (let fieldId in addressSublistForm) {
+            if (fieldId === 'internalid') continue; // we skip over internalid, not sure if this is necessary
+            customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId, value: addressData[fieldId]});
+        }
+
+        // Load the addressbookaddress subrecord of the currently selected sublist line
+        let addressSubrecord = customerRecord.getCurrentSublistSubrecord({sublistId: 'addressbook', fieldId: 'addressbookaddress'});
+
+        // Fill the subrecord's fields using property names of addressForm as reference
+        for (let fieldId in addressForm)
+            addressSubrecord.setValue({fieldId, value: addressData[fieldId]});
+
+        // Commit the line
+        customerRecord.commitLine({sublistId: 'addressbook'});
+
+        // Save customer record
+        customerRecord.save({ignoreMandatoryFields: true});
+
+        _writeResponseJson(response, 'Address Saved!');
+    },
+    'deleteAddress' : function (response, {customerId, addressInternalId}) {
+        let {record} = NS_MODULES;
+
+        let customerRecord = record.load({
+            type: record.Type.CUSTOMER,
+            id: customerId,
+        });
+        let line = customerRecord.findSublistLineWithValue({sublistId: 'addressbook', fieldId: 'internalid', value: addressInternalId});
+
+        customerRecord.removeLine({sublistId: 'addressbook', line});
+
+        customerRecord.save({ignoreMandatoryFields: true});
+
+        _writeResponseJson(response, 'Address Deleted!');
+    }
 };
 
 
@@ -220,4 +366,44 @@ const sharedFunctions = {
 
         return data;
     }
+};
+
+function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipping, currentDefaultBilling, addressSublistForm) {
+    let {record} = NS_MODULES;
+    let addressToUpdate, fieldIdToUpdate;
+
+    if (addressSublistForm.defaultshipping && currentDefaultShipping !== addressSublistForm.internalid && currentDefaultShipping !== null) {
+        addressToUpdate = currentDefaultShipping;
+        fieldIdToUpdate = 'defaultshipping';
+    }
+
+    if (addressSublistForm.defaultbilling && currentDefaultBilling !== addressSublistForm.internalid && currentDefaultBilling !== null) {
+        addressToUpdate = currentDefaultBilling;
+        fieldIdToUpdate = 'defaultbilling';
+    }
+
+    if (!addressToUpdate || !fieldIdToUpdate) return;
+
+    let customerRecord = record.load({
+        type: record.Type.CUSTOMER,
+        id: customerId,
+        isDynamic: true
+    });
+
+    let line = customerRecord.findSublistLineWithValue({sublistId: 'addressbook', fieldId: 'internalid', value: addressToUpdate});
+    customerRecord.selectLine({sublistId: 'addressbook', line});
+    customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: fieldIdToUpdate, value: false});
+
+    if (customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId: 'defaultshipping'})) {
+        customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Site Address'});
+    } else if (customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId: 'defaultbilling'})) {
+        customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Billing Address'});
+    } else if (customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId: 'isresidential'})) {
+        customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Postal Address'});
+    } else {
+        customerRecord.setCurrentSublistValue({sublistId: 'addressbook', fieldId: 'label', value: 'Other Address'});
+    }
+
+    customerRecord.commitLine({sublistId: 'addressbook'});
+    customerRecord.save({ignoreMandatoryFields: true});
 }
