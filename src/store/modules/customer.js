@@ -143,7 +143,7 @@ function _updateFormTitleAndHeader(context) {
 
     title = header + ' - NetSuite Australia (Mail Plus Pty Ltd)';
 
-    document.querySelector('h1.uir-record-type').setHTML(header);
+    document.querySelector('h1.uir-record-type').innerHTML = header;
     document.title = title;
 }
 
