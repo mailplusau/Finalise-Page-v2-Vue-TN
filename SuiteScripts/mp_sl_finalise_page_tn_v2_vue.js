@@ -247,6 +247,36 @@ const getOperations = {
 
         _writeResponseJson(response, data);
     },
+    'getCustomerInvoices' : function (response, {customerId}) {
+        let {search} = NS_MODULES;
+        let data = [];
+        let columns = ['internalid', 'tranid', 'total', 'trandate', 'status']
+
+        search.create({
+            type: 'invoice',
+            filters: [
+                {name: 'entity', operator: 'is', values: customerId},
+                {name: 'mainline', operator: 'is', values: true},
+                {name: 'memorized', operator: 'is', values: false},
+                {name: 'custbody_inv_type', operator: 'is', values: '@NONE@'},
+                {name: 'voided', operator: 'is', values: false},
+            ],
+            columns: columns.map(item => ({name: item, sort: item === 'trandate' ? search.Sort.ASC : search.Sort.NONE}))
+        }).run().each(function (result) {
+            let tmp = {};
+
+            for (let fieldId of columns) {
+                tmp[fieldId] = result.getValue(fieldId);
+                tmp[fieldId + '_text'] = result.getText(fieldId);
+            }
+
+            data.push(tmp);
+
+            return true;
+        });
+
+        _writeResponseJson(response, data);
+    },
     'getAssignedServices' : function (response, {customerId, fieldIds}) {
         let {search} = NS_MODULES;
         let data = [];
