@@ -24,6 +24,7 @@ const state = {
     invoiceCycles: [],
     yesNoOptions: [],
     mpExWeeklyUsageOptions: [],
+    servicesOfInterestOptions: [],
 };
 
 const getters = {
@@ -36,6 +37,7 @@ const getters = {
     invoiceCycles : state => state.invoiceCycles,
     yesNoOptions : state => state.yesNoOptions,
     mpExWeeklyUsageOptions : state => state.mpExWeeklyUsageOptions,
+    servicesOfInterestOptions : state => state.servicesOfInterestOptions,
 };
 
 const mutations = {};
@@ -49,6 +51,7 @@ const actions = {
         context.dispatch('getInvoiceCycles').then();
         context.dispatch('getYesNoOptions').then();
         context.dispatch('getMPExWeeklyUsageOptions').then();
+        context.dispatch('getServicesOfInterestOptions').then();
     },
     getIndustries : async (context) => {
         await _fetchDataForHtmlSelect(context, context.state.industries,
@@ -78,6 +81,10 @@ const actions = {
         await _fetchDataForHtmlSelect(context, context.state.mpExWeeklyUsageOptions,
             null, 'customlist_form_mpex_usage_per_week', 'internalId', 'name');
     },
+    getServicesOfInterestOptions : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.servicesOfInterestOptions,
+            null, 'customlist1081', 'internalId', 'name');
+    }
 };
 
 async function _fetchDataForHtmlSelect(context, stateObject, id, type, valueColumnName, textColumnName) {

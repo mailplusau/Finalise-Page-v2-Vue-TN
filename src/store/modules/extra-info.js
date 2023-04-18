@@ -49,6 +49,16 @@ const state = {
         busy: true,
         formDisabled: true,
         salesActivities: []
+    },
+    surveyInfo: {
+        data: {
+            custentity_services_of_interest: '',
+            custentity_category_multisite_link: '',
+            custentity_category_multisite: false, // true or false
+        },
+        form: {},
+        busy: true,
+        formDisabled: true,
     }
 };
 
@@ -56,6 +66,7 @@ const getters = {
     currentServices : state => state.currentServices,
     mpProducts : state => state.mpProducts,
     salesNotes : state => state.salesNotes,
+    surveyInfo : state => state.surveyInfo,
 };
 
 const mutations = {
@@ -67,6 +78,9 @@ const mutations = {
 
     resetSalesNotesForm : state => { state.salesNotes.form = {...state.salesNotes.data}; },
     disableSalesNotesForm : (state, disabled = true) => { state.salesNotes.formDisabled = disabled; },
+
+    resetSurveyInfoForm : state => { state.surveyInfo.form = {...state.surveyInfo.data}; },
+    disableSurveyInfosForm : (state, disabled = true) => { state.surveyInfo.formDisabled = disabled; },
 };
 
 const actions = {
@@ -76,6 +90,7 @@ const actions = {
         context.dispatch('initCurrentServicesTab').then();
         context.dispatch('initMPProductsTab').then();
         context.dispatch('initSalesNotesTab').then();
+        context.dispatch('initSurveyInfoTab').then();
     },
     initCurrentServicesTab : async context => {
         try {
@@ -222,6 +237,44 @@ const actions = {
         } catch (e) { console.error(e); }
 
         context.state.salesNotes.busy = false;
+    },
+    initSurveyInfoTab : async context => {
+        try {
+            let fieldIds = [];
+            for (let fieldId in context.state.surveyInfo.data) fieldIds.push(fieldId);
+
+            let data = await http.get('getCustomerDetails', {
+                customerId: context.rootGetters['customerId'],
+                fieldIds,
+            });
+
+            for (let fieldId in context.state.surveyInfo.data)
+                context.state.surveyInfo.data[fieldId] = data[fieldId];
+
+            context.commit('resetSurveyInfoForm');
+
+            context.state.surveyInfo.busy = false;
+        } catch (e) {console.error(e);}
+    },
+    saveSurveyInfo : async context => {
+        context.state.surveyInfo.busy = true;
+
+        let fieldIds = [];
+        for (let fieldId in context.state.surveyInfo.data) fieldIds.push(fieldId);
+
+        try {
+            let data = await http.post('saveCustomerDetails', {
+                customerId: context.rootGetters['customerId'],
+                customerData: {...context.state.surveyInfo.form},
+                fieldIds,
+            });
+
+            for (let fieldId in context.state.surveyInfo.data) context.state.surveyInfo.data[fieldId] = data[fieldId];
+        } catch (e) { console.error(e); }
+
+        context.commit('resetSurveyInfoForm');
+
+        context.state.surveyInfo.busy = false;
     }
 };
 
