@@ -420,7 +420,38 @@ const getOperations = {
         })
 
         _writeResponseJson(response, data);
-    }
+    },
+    'getSalesCampaignActivities' : function (response, {customerId}) {
+        let {search} = NS_MODULES;
+        let data = [];
+        let columns = ['createddate', 'completeddate', 'type', 'assigned', 'title', 'message', 'custevent_organiser']
+
+        search.create({
+            id: 'customsearch_salescamp_activity',
+            type: 'activity',
+            filters: [
+                {
+                    name: 'company',
+                    operator: search.Operator.ANYOF,
+                    values: customerId
+                }
+            ],
+            columns: columns.map(item => ({name: item}))
+        }).run().each(result => {
+            let tmp = {};
+
+            for (let fieldId of columns) {
+                tmp[fieldId] = result.getValue(fieldId);
+                tmp[fieldId + '_text'] = result.getText(fieldId);
+            }
+
+            data.push(tmp);
+
+            return true;
+        });
+
+        _writeResponseJson(response, data);
+    },
 }
 
 const postOperations = {
