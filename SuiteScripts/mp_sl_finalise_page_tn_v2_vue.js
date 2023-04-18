@@ -247,6 +247,62 @@ const getOperations = {
 
         _writeResponseJson(response, data);
     },
+    'getAssignedServices' : function (response, {customerId, fieldIds}) {
+        let {search} = NS_MODULES;
+        let data = [];
+
+        let serviceSearch = search.load({
+            id: 'customsearch_salesp_services',
+            type: 'customrecord_service'
+        });
+
+        serviceSearch.filters.push(search.createFilter({
+            name: 'custrecord_service_customer',
+            operator: search.Operator.ANYOF,
+            values: customerId
+        }));
+
+        serviceSearch.run().each(function (item) {
+            let tmp = {};
+
+            for (let fieldId of fieldIds)
+                tmp[fieldId] = item.getValue(fieldId);
+
+            data.push(tmp);
+
+            return true;
+        });
+
+        _writeResponseJson(response, data);
+    },
+    'getServiceTypes' : function (response) {
+        let {search} = NS_MODULES;
+        let data = [];
+
+        let serviceTypeSearch = search.create({
+            type: 'customrecord_service_type',
+            columns: [
+                {name: 'internalid'},
+                {name: 'custrecord_service_type_ns_item_array'},
+                {name: 'name'}
+            ]
+        });
+        serviceTypeSearch.filters.push(search.createFilter({
+            name: 'custrecord_service_type_category',
+            operator: search.Operator.ANYOF,
+            values: [1] // NO IDEA WHAT THIS IS
+        }));
+
+        let searchResult = serviceTypeSearch.run();
+
+        searchResult.each(item => {
+            data.push({value: item.getValue('internalid'), text: item.getValue('name')})
+
+            return true;
+        });
+
+        _writeResponseJson(response, data);
+    },
     'getSelectOptions' : function (response, {id, type, valueColumnName, textColumnName}) {
         let {search} = NS_MODULES;
         let data = [];
@@ -318,7 +374,7 @@ const getOperations = {
         }
 
         _writeResponseJson(response, data);
-    }
+    },
 }
 
 const postOperations = {
@@ -442,7 +498,7 @@ const postOperations = {
         contactRecord.save({ignoreMandatoryFields: true});
 
         _writeResponseJson(response, 'Contact Delete!');
-    }
+    },
 };
 
 
