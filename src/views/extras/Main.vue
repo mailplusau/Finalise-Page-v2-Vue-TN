@@ -2,7 +2,7 @@
     <b-card border-variant="primary" bg-variant="transparent" class="my-3" style="padding: 0">
         <b-tabs content-class="mt-3" fill>
             <CurrentServicesTab />
-            <b-tab title="MP Products"></b-tab>
+            <MPExProductsTab />
             <b-tab title="Sales Notes"></b-tab>
             <b-tab title="Survey Information"></b-tab>
         </b-tabs>
@@ -11,9 +11,10 @@
 
 <script>
 import CurrentServicesTab from "@/views/extras/CurrentServicesTab";
+import MPExProductsTab from "@/views/extras/MPExProductsTab";
 export default {
     name: "Main",
-    components: {CurrentServicesTab}
+    components: {MPExProductsTab, CurrentServicesTab}
 }
 </script>
 
