@@ -7,7 +7,7 @@ import http from "@/utils/http";
 // const adminRole = [3];
 
 const state = {
-    busy: false,
+    busy: true,
     details: {
         companyname: '',
         vatregnumber: '',
@@ -63,12 +63,10 @@ const mutations = {
 }
 
 let actions = {
-    init : async (context) => {
-        context.commit('setBusy');
+    init : context => {
+        if (!context.rootGetters['customerId']) return;
 
-        await Promise.allSettled([
-            context.dispatch('getDetails'),
-        ]);
+        context.dispatch('getDetails').then();
 
         context.commit('setBusy', false);
     },
