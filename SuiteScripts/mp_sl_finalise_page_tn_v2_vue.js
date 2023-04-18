@@ -375,6 +375,52 @@ const getOperations = {
 
         _writeResponseJson(response, data);
     },
+    'getProductPricing' : function (response, {customerId}) {
+        let {search} = NS_MODULES;
+        let data = [];
+        let fieldIds = [
+            'custrecord_prod_pricing_delivery_speeds',
+            'custrecord_prod_pricing_pricing_plan',
+            'custrecord_prod_pricing_def_prod_type',
+            'custrecord_prod_pricing_b4',
+            'custrecord_prod_pricing_250g',
+            'custrecord_prod_pricing_500g',
+            'custrecord_prod_pricing_1kg',
+            'custrecord_prod_pricing_3kg',
+            'custrecord_prod_pricing_5kg',
+            'custrecord_prod_pricing_10kg',
+            'custrecord_prod_pricing_20kg',
+            'custrecord_prod_pricing_25kg',
+            'custrecord_sycn_complete',
+        ]
+
+        let searchProductPricing = search.load({
+            id: 'customsearch_prod_pricing_customer_level',
+            type: 'customrecord_product_pricing'
+        });
+
+        searchProductPricing.filters.push(search.createFilter({
+            name: 'custrecord_prod_pricing_customer',
+            join: null,
+            operator: 'anyof',
+            values: customerId,
+        }));
+
+        searchProductPricing.run().each(item => {
+            let tmp = {};
+
+            for (let fieldId of fieldIds) {
+                tmp[fieldId] = item.getValue({name: fieldId});
+                tmp[fieldId + '_text'] = item.getText({name: fieldId});
+            }
+
+            data.push(tmp);
+
+            return true;
+        })
+
+        _writeResponseJson(response, data);
+    }
 }
 
 const postOperations = {
