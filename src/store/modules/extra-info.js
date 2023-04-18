@@ -41,11 +41,21 @@ const state = {
         formDisabled: true,
         productPricing: [],
     },
+    salesNotes: {
+        data: {
+            custentity_customer_pricing_notes: ''
+        },
+        form: {},
+        busy: true,
+        formDisabled: true,
+        salesActivities: []
+    }
 };
 
 const getters = {
     currentServices : state => state.currentServices,
     mpProducts : state => state.mpProducts,
+    salesNotes : state => state.salesNotes,
 };
 
 const mutations = {
@@ -54,6 +64,9 @@ const mutations = {
 
     resetMpProductsForm : state => { state.mpProducts.form = {...state.mpProducts.data}; },
     disabledMpProductsForm : (state, disabled = true) => { state.mpProducts.formDisabled = disabled; },
+
+    resetSalesNotesForm : state => { state.salesNotes.form = {...state.salesNotes.data}; },
+    disableSalesNotesForm : (state, disabled = true) => { state.salesNotes.formDisabled = disabled; },
 };
 
 const actions = {
@@ -62,6 +75,7 @@ const actions = {
 
         context.dispatch('initCurrentServicesTab').then();
         context.dispatch('initMPProductsTab').then();
+        context.dispatch('initSalesNotesTab').then();
     },
     initCurrentServicesTab : async context => {
         try {
@@ -164,6 +178,50 @@ const actions = {
         } catch (e) { console.error(e); }
 
         context.state.mpProducts.busy = false;
+    },
+    initSalesNotesTab : async context => {
+        try {
+            let fieldIds = [];
+            for (let fieldId in context.state.salesNotes.data) fieldIds.push(fieldId);
+
+            let data = await http.get('getCustomerDetails', {
+                customerId: context.rootGetters['customerId'],
+                fieldIds,
+            });
+
+            for (let fieldId in context.state.salesNotes.data)
+                context.state.salesNotes.data[fieldId] = data[fieldId];
+
+            context.commit('resetSalesNotesForm');
+
+            let salesActivities = await http.get('getSalesCampaignActivities', {
+                customerId: context.rootGetters['customerId'],
+            });
+
+            context.state.salesNotes.salesActivities = [...salesActivities];
+
+            context.state.salesNotes.busy = false;
+        } catch (e) {console.error(e);}
+    },
+    savePricingNote : async context => {
+        context.state.salesNotes.busy = true;
+
+        let fieldIds = [];
+        for (let fieldId in context.state.salesNotes.data) fieldIds.push(fieldId);
+
+        try {
+            let data = await http.post('saveCustomerDetails', {
+                customerId: context.rootGetters['customerId'],
+                customerData: {...context.state.salesNotes.form},
+                fieldIds,
+            });
+
+            for (let fieldId in context.state.salesNotes.data) context.state.salesNotes.data[fieldId] = data[fieldId];
+
+            context.commit('resetSalesNotesForm');
+        } catch (e) { console.error(e); }
+
+        context.state.salesNotes.busy = false;
     }
 };
 
