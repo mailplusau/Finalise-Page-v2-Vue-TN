@@ -28,23 +28,40 @@ const state = {
         formDisabled: true,
         servicePerformed: [],
         serviceTypes: [],
-    }
+    },
+    mpProducts: {
+        data: {
+            custentity_portal_training_required: false, //
+            custentity_mpex_customer: false, // is MPEX Customer
+            custentity_form_mpex_usage_per_week: null, // MPEX Weekly Usage
+            custentity_mpex_invoicing_cycle: '', // MPEX Invoicing Cycle
+        },
+        form: {},
+        busy: true,
+        formDisabled: true,
+        productPricing: [],
+    },
 };
 
 const getters = {
     currentServices : state => state.currentServices,
+    mpProducts : state => state.mpProducts,
 };
 
 const mutations = {
     resetCurrentServicesForm : state => { state.currentServices.form = {...state.currentServices.data}; },
     disableCurrentServicesForm : (state, disabled = true) => { state.currentServices.formDisabled = disabled; },
+
+    resetMpProductsForm : state => { state.mpProducts.form = {...state.mpProducts.data}; },
+    disabledMpProductsForm : (state, disabled = true) => { state.mpProducts.formDisabled = disabled; },
 };
 
 const actions = {
     init : context => {
         if (!context.rootGetters['customerId']) return;
 
-        context.dispatch('initCurrentServicesTab').then(() => {console.log(context.state.currentServices)});
+        context.dispatch('initCurrentServicesTab').then();
+        context.dispatch('initMPProductsTab').then();
     },
     initCurrentServicesTab : async context => {
         try {
@@ -103,6 +120,50 @@ const actions = {
         } catch (e) { console.error(e); }
 
         context.state.currentServices.busy = false;
+    },
+    initMPProductsTab : async context => {
+        try {
+            let fieldIds = [];
+            for (let fieldId in context.state.mpProducts.data) fieldIds.push(fieldId);
+
+            let data = await http.get('getCustomerDetails', {
+                customerId: context.rootGetters['customerId'],
+                fieldIds,
+            });
+
+            for (let fieldId in context.state.mpProducts.data)
+                context.state.mpProducts.data[fieldId] = data[fieldId];
+
+            context.commit('resetMpProductsForm');
+
+            let productPricing = await http.get('getProductPricing', {
+                customerId: context.rootGetters['customerId'],
+            });
+
+            context.state.mpProducts.productPricing = [...productPricing];
+
+            context.state.mpProducts.busy = false;
+        } catch (e) {console.error(e);}
+    },
+    saveMpExProductsDetails : async context => {
+        context.state.mpProducts.busy = true;
+
+        let fieldIds = [];
+        for (let fieldId in context.state.mpProducts.data) fieldIds.push(fieldId);
+
+        try {
+            let data = await http.post('saveCustomerDetails', {
+                customerId: context.rootGetters['customerId'],
+                customerData: {...context.state.mpProducts.form},
+                fieldIds,
+            });
+
+            for (let fieldId in context.state.mpProducts.data) context.state.mpProducts.data[fieldId] = data[fieldId];
+
+            context.commit('resetMpProductsForm');
+        } catch (e) { console.error(e); }
+
+        context.state.mpProducts.busy = false;
     }
 };
 

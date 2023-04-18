@@ -21,6 +21,9 @@ const state = {
         {value: 8, text: 'NT'},
         {value: 9, text: 'NZ'},
     ],
+    invoiceCycles: [],
+    yesNoOptions: [],
+    mpExWeeklyUsageOptions: [],
 };
 
 const getters = {
@@ -30,6 +33,9 @@ const getters = {
     roles : state => state.roles,
     statuses : state => state.statuses,
     states : state => state.states,
+    invoiceCycles : state => state.invoiceCycles,
+    yesNoOptions : state => state.yesNoOptions,
+    mpExWeeklyUsageOptions : state => state.mpExWeeklyUsageOptions,
 };
 
 const mutations = {};
@@ -40,6 +46,9 @@ const actions = {
         context.dispatch('getLeadSources').then();
         context.dispatch('getFranchisees').then();
         context.dispatch('getRoles').then();
+        context.dispatch('getInvoiceCycles').then();
+        context.dispatch('getYesNoOptions').then();
+        context.dispatch('getMPExWeeklyUsageOptions').then();
     },
     getIndustries : async (context) => {
         await _fetchDataForHtmlSelect(context, context.state.industries,
@@ -56,6 +65,18 @@ const actions = {
     getRoles : async context => {
         await _fetchDataForHtmlSelect(context, context.state.roles,
             'customsearch_salesp_contact_roles', 'contactrole', 'internalId', 'name');
+    },
+    getInvoiceCycles : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.invoiceCycles,
+            null, 'customlist_invoicing_cyle', 'internalId', 'name');
+    },
+    getYesNoOptions : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.yesNoOptions,
+            null, 'customlist107_2', 'internalId', 'name');
+    },
+    getMPExWeeklyUsageOptions : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.mpExWeeklyUsageOptions,
+            null, 'customlist_form_mpex_usage_per_week', 'internalId', 'name');
     },
 };
 
