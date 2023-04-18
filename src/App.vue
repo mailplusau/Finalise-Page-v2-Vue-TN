@@ -8,6 +8,8 @@
             <CustomerContacts />
         </div>
 
+        <CustomerInvoices />
+
         <ExtraFeatures />
 
         <GlobalNoticeModal />
@@ -19,6 +21,7 @@ import GlobalNoticeModal from "@/components/GlobalNoticeModal";
 import CustomerDetails from "@/views/customer/Main";
 import CustomerAddresses from "@/views/addresses/Main";
 import CustomerContacts from "@/views/contacts/Main";
+import CustomerInvoices from "@/views/invoices/Main";
 import ExtraFeatures from "@/views/extras/Main";
 
 export default {
@@ -28,6 +31,7 @@ export default {
         CustomerDetails,
         CustomerAddresses,
         CustomerContacts,
+        CustomerInvoices,
         ExtraFeatures,
     },
     beforeCreate() {
