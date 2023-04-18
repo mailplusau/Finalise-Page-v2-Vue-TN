@@ -54,6 +54,7 @@ const actions = {
         context.dispatch('customer/init').then();
         context.dispatch('addresses/init').then();
         context.dispatch('contacts/init').then();
+        context.dispatch('extra-info/init').then();
         context.dispatch('misc/init').then();
     },
     handleException : (context, {title, message}) => {
