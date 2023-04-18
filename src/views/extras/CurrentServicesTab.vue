@@ -129,7 +129,7 @@ export default {
         },
         cancelEditing() {
             this.$store.commit('extra-info/disableCurrentServicesForm');
-            this.$store.commit('extra-info/disableCurrentServicesForm');
+            this.$store.commit('extra-info/resetCurrentServicesForm');
         },
         saveForm() {
             this.$store.commit('extra-info/disableCurrentServicesForm');
