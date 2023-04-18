@@ -8,6 +8,8 @@
             <CustomerContacts />
         </div>
 
+        <ExtraFeatures />
+
         <GlobalNoticeModal />
     </div>
 </template>
@@ -17,6 +19,7 @@ import GlobalNoticeModal from "@/components/GlobalNoticeModal";
 import CustomerDetails from "@/views/customer/Main";
 import CustomerAddresses from "@/views/addresses/Main";
 import CustomerContacts from "@/views/contacts/Main";
+import ExtraFeatures from "@/views/extras/Main";
 
 export default {
     name: 'App',
@@ -25,6 +28,7 @@ export default {
         CustomerDetails,
         CustomerAddresses,
         CustomerContacts,
+        ExtraFeatures,
     },
     beforeCreate() {
         this.$store.dispatch('init');
