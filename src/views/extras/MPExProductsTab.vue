@@ -30,7 +30,7 @@
             </div>
             <div class="col-12 mb-4">
                 <div class="col-12">
-                    <b-button @click="editForm" v-if="formDisabled" size="sm" :disabled="busy" variant="outline-primary">Edit Service Details</b-button>
+                    <b-button @click="editForm" v-if="formDisabled" size="sm" :disabled="busy" variant="outline-primary">Edit MPEX Settings</b-button>
                     <template v-else>
                         <b-button @click="resetForm" size="sm" class="mx-2" :disabled="busy">Reset</b-button>
                         <b-button @click="cancelEditing" size="sm" class="mx-2" :disabled="busy" variant="outline-danger">Cancel</b-button>
@@ -74,7 +74,7 @@ export default {
     }),
     methods: {
         goToProductPricing() {
-            let url = nlapiResolveURL('SUITELET', 'customscript_sl2_prod_pricing_page', 'customdeploy1');
+            let url = window['nlapiResolveURL']('SUITELET', 'customscript_sl2_prod_pricing_page', 'customdeploy1');
             url += '&customerid=' + parseInt(this.$store.getters['customer/internalId']);
 
             window.open(url, "_self",
