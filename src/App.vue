@@ -12,6 +12,8 @@
 
         <ExtraFeatures />
 
+        <CallCenter />
+
         <GlobalNoticeModal />
     </div>
 </template>
@@ -23,6 +25,7 @@ import CustomerAddresses from "@/views/addresses/Main";
 import CustomerContacts from "@/views/contacts/Main";
 import CustomerInvoices from "@/views/invoices/Main";
 import ExtraFeatures from "@/views/extras/Main";
+import CallCenter from "@/views/call-center/Main";
 
 export default {
     name: 'App',
@@ -33,6 +36,7 @@ export default {
         CustomerContacts,
         CustomerInvoices,
         ExtraFeatures,
+        CallCenter,
     },
     beforeCreate() {
         this.$store.dispatch('init');
@@ -128,5 +132,47 @@ ul.pagination.b-pagination, ul.nav.nav-tabs {
     padding-left: 0 !important;
     list-style: none !important;
     margin: 0 !important;
+}
+
+.custom-file {
+    display: inline-block;
+    margin-bottom: 0;
+}
+.custom-file-input {
+    z-index: 2;
+    margin: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+.custom-file, .custom-file-input {
+    position: relative;
+    flex: 1 1;
+    width: 100%;
+    height: calc(1.5em + 0.75rem + 2px);
+}
+.custom-file-label {
+    white-space: nowrap;
+    overflow-x: hidden;
+}
+.custom-control-label:before, .custom-file-label, .custom-select {
+    transition: background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.custom-file-label, .custom-file-label:after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 1.1rem 0.75rem;
+    line-height: 0.5;
+    color: #495057;
+}
+.custom-file-label {
+    left: 0;
+    z-index: 1;
+    height: calc(1.5em + 0.75rem + 2px);
+    overflow: hidden;
+    font-weight: 400;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
 }
 </style>
