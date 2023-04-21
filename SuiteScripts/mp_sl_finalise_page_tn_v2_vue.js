@@ -13,9 +13,9 @@ const clientScriptFilename = 'mp_cl_finalise_page_tn_v2_vue.js';
 let NS_MODULES = {};
 
 
-define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record', 'N/email'],
-    (serverWidget, render, search, file, log, record, email) => {
-    NS_MODULES = {serverWidget, render, search, file, log, record, email};
+define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record', 'N/email', 'N/runtime'],
+    (serverWidget, render, search, file, log, record, email, runtime) => {
+    NS_MODULES = {serverWidget, render, search, file, log, record, email, runtime};
     
     const onRequest = ({request, response}) => {
         if (request.method === "GET") {
@@ -488,6 +488,18 @@ const getOperations = {
 }
 
 const postOperations = {
+    'verifyParameters' : function (response, {customerId, salesRecordId}) {
+        let {record, runtime} = NS_MODULES;
+        let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId, isDynamic: true});
+
+        if (parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_customer'})) === parseInt(customerId))
+            _writeResponseJson(response, {
+                customerId, salesRecordId,
+                userId: runtime['getCurrentUser']().id,
+                userRole: runtime['getCurrentUser']().role,
+            });
+        else _writeResponseJson(response, {error: `IDs mismatched. Sales record #${salesRecordId} does not belong to customer #${customerId}.`});
+    },
     'saveCustomerDetails' : function (response, {customerId, customerData, fieldIds}) {
         let {record} = NS_MODULES;
 
