@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import modules from './modules';
+import http from "@/utils/http";
 
 Vue.use(Vuex)
 
@@ -8,6 +9,8 @@ const state = {
     customerId: null,
     salesRecordId: null,
     callCenterMode: false,
+    userId: null,
+    userRole: null,
 
     globalModal: {
         open: false,
@@ -23,6 +26,8 @@ const getters = {
     customerId : state => state.customerId,
     salesRecordId : state => state.salesRecordId,
     callCenterMode : state => state.callCenterMode,
+    userId : state => state.userId,
+    userRole : state => state.userRole,
 
     globalModal : state => state.globalModal,
 };
@@ -48,8 +53,8 @@ const mutations = {
 };
 
 const actions = {
-    init : context => {
-        _readUrlParams(context);
+    init : async context => {
+        await _readAndVerifyUrlParams(context);
 
         context.dispatch('customer/init').then();
         context.dispatch('addresses/init').then();
@@ -57,6 +62,7 @@ const actions = {
         context.dispatch('invoices/init').then();
         context.dispatch('extra-info/init').then();
         context.dispatch('misc/init').then();
+        context.dispatch('comm-reg/init').then();
     },
     handleException : (context, {title, message}) => {
         context.commit('displayErrorGlobalModal', {
@@ -65,14 +71,23 @@ const actions = {
     }
 };
 
-function _readUrlParams(context) {
+async function _readAndVerifyUrlParams(context) {
     const params = new Proxy(new URLSearchParams(window.location.search), {
         get: (searchParams, prop) => searchParams.get(prop),
     });
 
-    context.state.customerId = params['recid'] || null;
-    context.state.salesRecordId = params['sales_record_id'] || null;
-    context.state.callCenterMode = (!!params['callcenter'] && params['callcenter'] === 'T');
+    try {
+        let {customerId, salesRecordId, userId, userRole} = await http.post('verifyParameters', {
+            customerId: params['recid'] || null,
+            salesRecordId: params['sales_record_id'] || null,
+        });
+
+        context.state.userId = userId;
+        context.state.userRole = userRole;
+        context.state.customerId = customerId;
+        context.state.salesRecordId = salesRecordId;
+        context.state.callCenterMode = (!!params['callcenter'] && params['callcenter'] === 'T');
+    } catch (e) { console.error(e); }
 }
 
 const store = new Vuex.Store({
