@@ -31,6 +31,8 @@ const state = {
 
         custentity_maap_bankacctno: null,
         custentity_maap_bankacctno_parent: null,
+
+        custentity_cancel_ongoing: '',
     },
     detailForm: {},
     detailFormValid: false,
@@ -51,6 +53,9 @@ let getters = {
     detailFormValid : state => state.detailFormValid,
     detailFormDisabled : state => state.detailFormDisabled,
     accountManagers : state => state.accountManagers,
+
+    status : state => parseInt(state.details.entitystatus),
+    saved : state => parseInt(state.details.custentity_cancel_ongoing),
 
     yesNoOptions : state => state.yesNoOptions,
 };
