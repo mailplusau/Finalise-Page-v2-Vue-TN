@@ -1,12 +1,22 @@
 import superagent from "superagent";
 import store from "@/store";
 
+function _getURL() {
+    let baseUrl = window.location.href.split('?')[0];
+    const params = new Proxy(new URLSearchParams(window.location.search), {
+        get: (searchParams, prop) => searchParams.get(prop),
+    });
+
+    return {baseUrl, essentialParams: {script: params['script'], deploy: params['deploy']}}
+}
+
 export default {
     async get(operation, requestParams) {
+        let {baseUrl, essentialParams} = _getURL();
         return new Promise((resolve, reject) => {
-            superagent.get(window.location.href)
+            superagent.get(baseUrl)
                 .set("Content-Type", "application/json")
-                .query({requestData: JSON.stringify({operation, requestParams})})
+                .query({...essentialParams, requestData: JSON.stringify({operation, requestParams})})
                 .end((err, res) => { _handle(err, res, reject, resolve); });
         });
     },
