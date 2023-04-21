@@ -13,8 +13,9 @@ const clientScriptFilename = 'mp_cl_finalise_page_tn_v2_vue.js';
 let NS_MODULES = {};
 
 
-define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record'], (serverWidget, render, search, file, log, record) => {
-    NS_MODULES = {serverWidget, render, search, file, log, record};
+define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record', 'N/email'],
+    (serverWidget, render, search, file, log, record, email) => {
+    NS_MODULES = {serverWidget, render, search, file, log, record, email};
     
     const onRequest = ({request, response}) => {
         if (request.method === "GET") {
@@ -121,6 +122,8 @@ function _handleGETRequests(request, response) {
         let {operation, requestParams} = JSON.parse(request);
 
         if (!operation) throw 'No operation specified.';
+
+        if (!getOperations[operation]) throw `Operation [${operation}] is not supported.`;
 
         getOperations[operation](response, requestParams);
     } catch (e) {
@@ -606,6 +609,139 @@ const postOperations = {
 
         _writeResponseJson(response, 'Contact Delete!');
     },
+    'createSalesNote' : function (response, {userId, customerId, salesRecordId, salesNote}) {
+        if (salesNote) {
+            let {record} = NS_MODULES;
+            let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId, isDynamic: true});
+            let phoneCallRecord = record.create({ type: record.Type['PHONE_CALL'], isDynamic: true });
+            let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId, isDynamic: true});
+            let salesCampaignId = salesRecord.getValue({fieldId: 'custrecord_sales_campaign'});
+            let salesCampaignRecord = record.load({type: 'customrecord_salescampaign', id: salesCampaignId, isDynamic: true});
+
+            phoneCallRecord.setValue({fieldId: 'assigned', value: customerRecord.getValue({fieldId: 'partner'})});
+            phoneCallRecord.setValue({fieldId: 'custevent_organiser', value: userId});
+            phoneCallRecord.setValue({fieldId: 'startdate', value: new Date});
+            phoneCallRecord.setValue({fieldId: 'company', value: customerId});
+            phoneCallRecord.setValue({fieldId: 'status', value: 'COMPLETE'});
+            phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 16});
+            phoneCallRecord.setValue({fieldId: 'title', value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Call Notes'});
+            phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
+
+            phoneCallRecord.save({ignoreMandatoryFields: true});
+
+            _writeResponseJson(response, `Sales Note saved`);
+        } else _writeResponseJson(response, {error: `No Sales Note was submitted`});
+    },
+    'handleCallCenterOutcomes' : function (response, {userId, customerId, salesRecordId, salesNote, outcome}) {
+        if (!handleCallCenterOutcomes[outcome])
+            _writeResponseJson(response, {error: `Outcome [${outcome}] is not recognised.`});
+        else {
+            let {record} = NS_MODULES;
+            let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId, isDynamic: true});
+            let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId, isDynamic: true});
+            let salesCampaignId = salesRecord.getValue({fieldId: 'custrecord_sales_campaign'});
+            let salesCampaignRecord = record.load({type: 'customrecord_salescampaign', id: salesCampaignId, isDynamic: true});
+
+            let phoneCallRecord = record.create({ type: record.Type['PHONE_CALL'], isDynamic: true });
+            phoneCallRecord.setValue({fieldId: 'assigned', value: customerRecord.getValue({fieldId: 'partner'})});
+            phoneCallRecord.setValue({fieldId: 'custevent_organiser', value: userId});
+            phoneCallRecord.setValue({fieldId: 'startdate', value: new Date()});
+            phoneCallRecord.setValue({fieldId: 'company', value: customerId});
+            phoneCallRecord.setText({fieldId: 'status', text: 'Completed'});
+            phoneCallRecord.setValue({fieldId: 'custevent_call_type', value: 2});
+
+            handleCallCenterOutcomes[outcome]({userId, customerRecord, salesRecord, salesCampaignRecord, phoneCallRecord, salesNote});
+
+            customerRecord.save({ignoreMandatoryFields: true});
+            phoneCallRecord.save({ignoreMandatoryFields: true});
+            salesRecord.save({ignoreMandatoryFields: true});
+
+            _writeResponseJson(response, `Call center outcome [${outcome}] has been handled.`);
+        }
+    },
+    'notifyITTeam' : function (response, {customerId, salesRecordId}) {
+        let {record, search, email} = NS_MODULES;
+
+        let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
+        let entityId = customerRecord.getValue({fieldId: 'entityid'});
+        let companyName = customerRecord.getValue({fieldId: 'companyname'});
+        let commRegColumns = [
+            'internalId',
+            'custrecord_date_entry',
+            'custrecord_sale_type',
+            'custrecord_franchisee',
+            'custrecord_comm_date',
+            'custrecord_in_out',
+            'custrecord_customer',
+            'custrecord_trial_status',
+            'custrecord_comm_date_signup',
+        ];
+        let commRegId;
+
+        if (salesRecordId) { // Search for Commencement Register
+            search.create({
+                type: 'customrecord_commencement_register',
+                filters: [
+                    {name: 'custrecord_customer', operator: search.Operator.IS, values: parseInt(customerId)},
+                    {name: 'custrecord_commreg_sales_record', operator: search.Operator.IS, values: parseInt(salesRecordId)},
+                    {name: 'custrecord_trial_status', operator: search.Operator.ANYOF, values: [9, 10, 2]},
+                ],
+                columns: commRegColumns.map(item => ({name: item}))
+            }).run().each(result => {
+                if (!commRegId) commRegId = result.getValue('internalid');
+
+                if (parseInt(result.getValue('custrecord_trial_status')) === 9)
+                    commRegId = result.getValue('internalid');
+
+                return true;
+            });
+        }
+
+        let serviceChangeCount = 0;
+        let emailBody = 'Customer Internal ID: ' + customerId + '</br>'
+        emailBody += 'Customer Entity ID: ' + entityId + '</br>'
+        emailBody += 'Customer Name: ' + companyName + '</br>'
+
+        if (commRegId) {
+            search.create({
+                id: 'customsearch_salesp_service_chg',
+                type: 'customrecord_servicechg',
+                filters: [
+                    {name: 'custrecord_service_customer', join: 'CUSTRECORD_SERVICECHG_SERVICE', operator: search.Operator.IS, values: parseInt(customerId)},
+                    {name: 'custrecord_servicechg_comm_reg', operator: search.Operator.IS, values: parseInt(commRegId)},
+                    {name: 'custrecord_servicechg_status', operator: search.Operator.ANYOF, values: [1, 2, 4]},
+                ],
+            }).run().each(result => {
+                serviceChangeCount++;
+
+                let serviceText = result.getText('custrecord_servicechg_service');
+                let oldServicePrice = result.getValue({name: "custrecord_service_price", join: "CUSTRECORD_SERVICECHG_SERVICE"});
+                let newServiceChangePrice = result.getValue('custrecord_servicechg_new_price');
+                let dateEffective = result.getValue('custrecord_servicechg_date_effective');
+                let serviceChangeTypeText = result.getText('custrecord_servicechg_type');
+                let serviceChangeFreqText = result.getText('custrecord_servicechg_new_freq');
+
+                emailBody += 'Service Name: ' + serviceText + '</br>';
+                emailBody += 'Service Change Type: ' + serviceChangeTypeText + '</br>';
+                emailBody += 'Date Effective: ' + dateEffective + '</br>';
+                emailBody += 'Old Price: ' + oldServicePrice + '</br>';
+                emailBody += 'New Price: ' + newServiceChangePrice + '</br>';
+                emailBody += 'Frequency: ' + serviceChangeFreqText + '</br>';
+
+                return true;
+            });
+        }
+
+        if (serviceChangeCount > 0)
+            email.send({
+                author: 668712,
+                subject: 'Cancel Customer - ' + entityId + ' ' + companyName,
+                body: emailBody,
+                recipients: ['tim.nguyen@mailplus.com.au']
+            });
+
+        _writeResponseJson(response, {commRegId, serviceChangeCount});
+    },
 };
 
 
@@ -624,6 +760,111 @@ const sharedFunctions = {
 
         return data;
     }
+};
+
+const handleCallCenterOutcomes = {
+    'NO_SALE': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote}) => {
+        if (parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'})) !== 65) {
+            customerRecord.setValue({fieldId: 'entitystatus', value: 21});
+        }
+
+        phoneCallRecord.setValue({
+            fieldId: 'title',
+            value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Sale'
+        });
+        phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 16});
+
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
+        salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: new Date()});
+        salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 10});
+        salesRecord.setValue({fieldId: 'custrecord_sales_nosalereason', value: ''});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
+        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: new Date()});
+    },
+    'NO_RESPONSE_EMAIL': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote}) => {
+        let salesCampaignType = parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'}));
+        let today = new Date();
+
+        if (salesCampaignType === 55)
+            customerRecord.setValue({fieldId: 'entitystatus', value: 20});
+        else if  (salesCampaignType !== 65)
+            customerRecord.setValue({fieldId: 'entitystatus', value: 35});
+
+        phoneCallRecord.setValue({
+            fieldId: 'title',
+            value: salesCampaignType === 55 ? 'Prospecting Call - GPO - No Answer' : salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Response - Email'
+        });
+        phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6});
+
+        if (!salesRecord.getValue({fieldId: 'custrecord_sales_day0call'}))
+            salesRecord.setValue({fieldId: 'custrecord_sales_day0call', value: today});
+        else if (!salesRecord.getValue({fieldId: 'custrecord_sales_day14call'}))
+            salesRecord.setValue({fieldId: 'custrecord_sales_day14call', value: today});
+        else if (!salesRecord.getValue({fieldId: 'custrecord_sales_day25call'}))
+            salesRecord.setValue({fieldId: 'custrecord_sales_day25call', value: today});
+
+        let fiveDaysFromNow = new Date();
+        fiveDaysFromNow.setDate(today.getDate() + 5);
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 7});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: fiveDaysFromNow});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: '10:00 AM'});
+        salesRecord.setValue({
+            fieldId: 'custrecord_sales_attempt',
+            value: parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_attempt'})) + 1
+        });
+    },
+    'NOT_ESTABLISHED': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote}) => {
+        let today = new Date();
+
+        customerRecord.setValue({fieldId: 'entitystatus', value: 59});
+        customerRecord.setValue({fieldId: 'custentity13', value: today});
+        customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 55});
+
+        phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 3});
+        phoneCallRecord.setValue({
+            fieldId: 'title',
+            value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Not Established Business'
+        });
+
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
+        salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: today});
+        salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 10});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
+        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: today});
+    },
+    'FOLLOW_UP': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote}) => {
+        let today = new Date();
+
+        customerRecord.setValue({fieldId: 'entitystatus', value: 18});
+        customerRecord.setValue({fieldId: 'salesrep', value: userId});
+
+        phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 25});
+        phoneCallRecord.setValue({
+            fieldId: 'title',
+            value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Prospect Opportunity'
+        });
+
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 21});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
+        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: today});
+    },
 };
 
 function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipping, currentDefaultBilling, addressSublistForm) {
