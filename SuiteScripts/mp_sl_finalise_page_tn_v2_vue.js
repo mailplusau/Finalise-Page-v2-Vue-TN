@@ -441,6 +441,32 @@ const getOperations = {
 
         _writeResponseJson(response, data);
     },
+    'getCommencementRegister' : function (response, {customerId, salesRecordId, fieldIds}) {
+        let {search} = NS_MODULES;
+        let data = [];
+
+        search.create({
+            type: 'customrecord_commencement_register',
+            filters: [
+                {name: 'custrecord_customer', operator: search.Operator.IS, values: parseInt(customerId)},
+                {name: 'custrecord_commreg_sales_record', operator: search.Operator.IS, values: parseInt(salesRecordId)},
+            ],
+            columns: fieldIds.map(item => ({name: item}))
+        }).run().each(result => {
+            let tmp = {};
+
+            for (let fieldId of fieldIds) {
+                tmp[fieldId] = result.getValue(fieldId);
+                tmp[fieldId + '_text'] = result.getText(fieldId);
+            }
+
+            data.push(tmp);
+
+            return true;
+        });
+
+        _writeResponseJson(response, data);
+    },
 }
 
 const postOperations = {
@@ -711,6 +737,92 @@ const postOperations = {
 
         _writeResponseJson(response, {commRegId, serviceChangeCount});
     },
+    'saveCommencementRegister' : function (response, {userId, customerId, salesRecordId, commRegData, fileContent, fileName}) {
+        let {log, file, record, search} = NS_MODULES;
+        let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
+        let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId});
+        let partnerId = parseInt(customerRecord.getValue({fieldId: 'partner'}));
+        let partnerRecord = record.load({type: 'partner', id: partnerId});
+
+        // Save the uploaded pdf file and get its ID only when fileContent and fileName are present
+        if (fileContent && fileName) {
+            let formFileId = null;
+            let fileExtension = fileName.split('.').pop().toLowerCase();
+
+            if (fileExtension === 'pdf') {
+                let dateStr = new Date().toLocaleDateString('en-AU');
+                let entityId = customerRecord.getValue({fieldId: 'entityid'});
+
+                formFileId = file.create({
+                    name: `${dateStr}_${entityId}.${fileExtension}`,
+                    fileType: file.Type['PDF'],
+                    contents: fileContent,
+                    folder: 1212243,
+                }).save();
+
+                commRegData['custrecord_scand_form'] = formFileId;
+            } else log.debug({title: "saveCommencementRegister", details: `fileExtension: ${fileExtension}`});
+        }
+
+        // Save the commencement register record
+        let commRegRecord = commRegData.internalid ?
+            record.load({type: 'customrecord_commencement_register', id: commRegData.internalid}) :
+            record.create({type: 'customrecord_commencement_register'});
+
+        for (let fieldId in commRegData)
+            commRegRecord.setValue({fieldId, value: commRegData[fieldId]});
+
+        let commRegId = commRegRecord.save({ignoreMandatoryFields: true});
+
+        // Modify service change records
+        search.create({
+            id: 'customsearch_salesp_service_chg',
+            type: 'customrecord_servicechg',
+            filters: [
+                {name: 'custrecord_service_customer', join: 'CUSTRECORD_SERVICECHG_SERVICE', operator: search.Operator.IS, values: parseInt(customerId)},
+                {name: 'custrecord_servicechg_comm_reg', operator: search.Operator.IS, values: commRegId},
+                {name: 'custrecord_servicechg_status', operator: search.Operator.NONEOF, values: [2, 3]},
+            ],
+        }).run().each(result => {
+
+            let serviceChangeRecord = record.load({type: 'customrecord_servicechg', id: result.getValue('internalid')});
+
+            serviceChangeRecord.setValue({fieldId: 'custrecord_servicechg_status', value: 1});
+
+            serviceChangeRecord.save({ignoreMandatoryFields: true});
+
+            return true;
+        });
+
+        // Modify sales record
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 2});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
+        salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_commreg', value: commRegId});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: new Date()});
+        salesRecord.save({ignoreMandatoryFields: true});
+
+        // Modify customer record
+        customerRecord.setValue({fieldId: 'entitystatus', value: 13});
+        customerRecord.setValue({fieldId: 'custentity_date_prospect_opportunity', value: new Date()});
+        customerRecord.setValue({fieldId: 'custentity_cust_closed_won', value: true});
+        customerRecord.setValue({fieldId: 'custentity_mpex_surcharge_rate', value: '31.16'});
+        customerRecord.setValue({fieldId: 'custentity_sendle_fuel_surcharge', value: '6.95'});
+        customerRecord.setValue({fieldId: 'custentity_mpex_surcharge', value: 1});
+        if (parseInt(partnerRecord.getValue({fieldId: 'custentity_service_fuel_surcharge_apply'})) === 1) {
+            customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge', value: 1});
+            customerRecord.setValue({
+                fieldId: 'custentity_service_fuel_surcharge_percen',
+                value: (partnerId === 218 || partnerId === 469) ? '5.3' : '9.5'
+            });
+        }
+        customerRecord.save({ignoreMandatoryFields: true});
+
+        _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegId);
+
+        // End
+        _writeResponseJson(response, {commRegId});
+    },
 };
 
 
@@ -961,4 +1073,241 @@ function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipp
     }
 
     customerRecord.save({ignoreMandatoryFields: true});
+}
+
+function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegId) {
+    let {http, email, record, task} = NS_MODULES;
+    let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
+    let entityId = customerRecord.getValue({fieldId: 'entityid'});
+    let companyName = customerRecord.getValue({fieldId: 'companyname'});
+    let partnerId = customerRecord.getValue({fieldId: 'partner'});
+    let partnerText = customerRecord.getText({fieldId: 'partner'});
+    let leadSourceId = customerRecord.getValue({fieldId: 'leadsource'});
+    let leadSourceText = customerRecord.getText({fieldId: 'leadsource'});
+    let dayToDayEmail = customerRecord.getValue({fieldId: 'custentity_email_service'});
+    let customerContacts = sharedFunctions.getCustomerContacts(customerId).filter(item => item.custentity_connect_user);
+
+    let email_subject = '';
+    let email_body = ' New Customer NS ID: ' + customerId +
+        '</br> New Customer: ' + entityId + ' ' + companyName +
+        '</br> New Customer Franchisee NS ID: ' + partnerId +
+        '</br> New Customer Franchisee Name: ' + partnerText + '';
+    if (parseInt(leadSourceId) === 246306) {
+        email_subject = 'Shopify Customer Finalised on NetSuite';
+        email_body += '</br> Email: ' + dayToDayEmail;
+        email_body += '</br> Lead Source: ' + leadSourceText;
+    } else {
+        email_subject = 'New Customer Finalised on NetSuite';
+    }
+
+    if (customerContacts.length) { // contact with connect_user set to true
+        let contact = customerContacts[0]; // taking only the first contact with connect_user (???)
+        email_body += '</br></br> Customer Portal Access - User Details';
+        email_body += '</br>First Name: ' + contact['firstname'];
+        email_body += '</br>Last Name: ' + contact['lastname'];
+        email_body += '</br>Email: ' + contact['email'];
+        email_body += '</br>Phone: ' + contact['phone'];
+
+        customerRecord.setValue({fieldId: 'custentity_portal_access', value: 1});
+        customerRecord.setValue({fieldId: 'custentity_portal_how_to_guides', value: 2});
+        customerRecord.save({ignoreMandatoryFields: true});
+
+        let userJSON = '{';
+        userJSON += '"customer_ns_id" : "' + customerId + '",'
+        userJSON += '"first_name" : "' + contact['lastname'] + '",'
+        userJSON += '"last_name" : "' + contact['lastname'] + '",'
+        userJSON += '"email" : "' + contact['email'] + '",'
+        userJSON += '"phone" : "' + contact['phone'] + '"'
+        userJSON += '}';
+
+        let headers = {};
+        headers['Content-Type'] = 'application/json';
+        headers['Accept'] = 'application/json';
+        headers['x-api-key'] = 'XAZkNK8dVs463EtP7WXWhcUQ0z8Xce47XklzpcBj';
+
+        http.post({
+            url: 'https://mpns.protechly.com/new_staff',
+            body: userJSON,
+            headers
+        });
+
+        let taskRecord = record.create({type: 'task'});
+        taskRecord.setValue({fieldId: 'title', value: 'Shipping Portal - Send Invite'});
+        taskRecord.setValue({fieldId: 'assigned', value: 1706027});
+        taskRecord.setValue({fieldId: 'company', value: customerId});
+        taskRecord.setValue({fieldId: 'sendemail', value: true});
+        taskRecord.setValue({fieldId: 'message', value: ''});
+        taskRecord.setValue({fieldId: 'status', value: 'Not Started'});
+        taskRecord.save({ignoreMandatoryFields: true});
+
+        email.sendBulk({
+            author: userId,
+            body: email_body,
+            subject: 'New Customer Finalised - Portal Access Required',
+            recipients: ['laura.busse@mailplus.com.au'],
+            cc: ['popie.popie@mailplus.com.au',
+                'ankith.ravindran@mailplus.com.au',
+                'fiona.harrison@mailplus.com.au'
+            ],
+            relatedRecords: {
+                'entity': customerId
+            },
+            isInternalOnly: true
+        });
+    }
+
+    email.sendBulk({
+        author: userId,
+        body: email_body,
+        subject: email_subject,
+        recipients: ['popie.popie@mailplus.com.au'],
+        cc: [
+            'ankith.ravindran@mailplus.com.au',
+            'fiona.harrison@mailplus.com.au'
+        ],
+        relatedRecords: {
+            'entity': customerId
+        },
+        isInternalOnly: true
+    });
+
+    let customerJSON = '{';
+    customerJSON += '"ns_id" : "' + customerId + '"'
+    customerJSON += '}';
+
+    let headers = {};
+    headers['Content-Type'] = 'application/json';
+    headers['Accept'] = 'application/json';
+    headers['x-api-key'] = 'XAZkNK8dVs463EtP7WXWhcUQ0z8Xce47XklzpcBj';
+
+    http.post({
+        url: 'https://mpns.protechly.com/new_customer',
+        body: customerJSON,
+        headers
+    });
+
+    /**
+     * Description - Schedule Script to create / edit / delete the financial tab items with the new details
+     */
+    let params3 = _prepareScheduledScriptParams(customerId, commRegId);
+    let scriptTask = task.create({
+        taskType: task.TaskType['SCHEDULED_SCRIPT'],
+        scriptId: 'customscript_sc_smc_item_pricing_update',
+        deploymentId: 'customdeploy1',
+        params: params3
+    });
+    let scriptTaskId = scriptTask.submit();
+    let status = task.checkStatus(scriptTaskId);
+    return status === 'QUEUED';
+}
+
+function _prepareScheduledScriptParams(customerId, commRegId) {
+    let {record} = NS_MODULES;
+    let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
+    let pricing_notes_services = customerRecord.getValue({fieldId: 'custentity_customer_pricing_notes'});
+    let initial_size_of_financial = customerRecord.getLineCount({sublistId: 'itempricing'});
+
+
+    let financialTabItemArray = [];
+
+    for (let line = 1; line <= customerRecord.getLineCount({sublistId: 'itempricing'}); line++) {
+        customerRecord.selectLine({sublistId: 'itempricing', line});
+        financialTabItemArray[financialTabItemArray.length] = customerRecord.getCurrentSublistValue({
+            sublistId: 'itempricing',
+            fieldId: 'item'
+        });
+    }
+
+    let serviceChangeRecords = sharedFunctions.getServiceChangeRecords(customerId, commRegId);
+
+    let item_price_array = [];
+    let financial_tab_item_array = [];
+    let financial_tab_price_array = [];
+    let count_array = [];
+    
+    for (let [index, serviceChangeRecord] of serviceChangeRecords.entries()) {
+        let {nsItem, serviceTypeId, newServiceChangePrice, serviceDescription, serviceChangeFreqText} = serviceChangeRecord;
+
+        let nsTypeRec = record.load({type: 'serviceitem', id: nsItem});
+        let serviceText = nsTypeRec.getValue({fieldId: 'itemid'});
+
+        if (index === 0) {
+            pricing_notes_services += '\n' +
+                serviceText + ' - @$' + newServiceChangePrice + ' - ' + serviceChangeFreqText + '\n';
+        } else {
+            pricing_notes_services += '\n' + serviceText + ' - @$' + newServiceChangePrice + ' - ' +
+                serviceChangeFreqText + '\n';
+        }
+
+
+        serviceDescription = serviceDescription ? serviceDescription.replace(/\s+/g, '-').toLowerCase() : 0;
+
+        if (item_price_array[serviceTypeId] === undefined) {
+            item_price_array[serviceTypeId] = [];
+            item_price_array[serviceTypeId][0] = newServiceChangePrice + '_' + serviceDescription;
+        } else {
+            let size = item_price_array[serviceTypeId].length;
+            item_price_array[serviceTypeId][size] = newServiceChangePrice + '_' + serviceDescription;
+        }
+    }
+
+    customerRecord.setValue({fieldId: 'custentity_customer_pricing_notes', value: pricing_notes_services});
+    customerRecord.save({ignoreMandatoryFields: true});
+
+    for (let serviceChangeRecord of serviceChangeRecords) {
+        let {nsItem, serviceTypeId, newServiceChangePrice} = serviceChangeRecord;
+
+        let serviceTypeRec = record.load({type: 'customrecord_service_type', id: serviceTypeId});
+
+        if (count_array[serviceTypeId] === undefined) {
+            count_array[serviceTypeId] = -1;
+        }
+
+        let size = item_price_array[serviceTypeId].length;
+
+        //if the size is 1, directly create in the financial tab
+        if (size === 1) {
+            initial_size_of_financial++;
+            financial_tab_item_array[initial_size_of_financial] = nsItem;
+            financial_tab_price_array[initial_size_of_financial] = newServiceChangePrice;
+        } else {
+            //if the size is more than 1, go through the NS array in the service type record and create the ns iitems in the financial tab respectively
+            let ns_array_items = serviceTypeRec.getValue({fieldId: 'custrecord_service_type_ns_item_array'});
+            if (ns_array_items) {
+
+                let ns_items = ns_array_items.split(",")
+
+                if (count_array[serviceTypeId] < ns_items.length) {
+                    initial_size_of_financial++;
+                    if (count_array[serviceTypeId] === -1) {
+                        financial_tab_item_array[initial_size_of_financial] = serviceTypeRec.getValue({fieldId: 'custrecord_service_type_ns_item'});
+                        financial_tab_price_array[initial_size_of_financial] = newServiceChangePrice;
+
+                        count_array[serviceTypeId] = count_array[serviceTypeId] + 1;
+
+                    } else {
+
+                        financial_tab_item_array[initial_size_of_financial] = ns_items[count_array[serviceTypeId]];
+                        financial_tab_price_array[initial_size_of_financial] = newServiceChangePrice;
+
+                        count_array[serviceTypeId] = count_array[serviceTypeId] + 1;
+                    }
+                }
+            } else if (count_array[serviceTypeId] === -1) {
+
+                initial_size_of_financial++;
+                financial_tab_item_array[initial_size_of_financial] = serviceTypeRec.getValue({fieldId: 'custrecord_service_type_ns_item'});
+                financial_tab_price_array[initial_size_of_financial] = newServiceChangePrice;
+                count_array[serviceTypeId] = count_array[serviceTypeId] + 1;
+            }
+        }
+    }
+
+    return {
+        custscriptcustomer_id: parseInt(customerId),
+        custscriptids: financialTabItemArray.toString(),
+        custscriptlinked_service_ids: null,
+        custscriptfinancial_tab_array: financial_tab_item_array.toString(),
+        custscriptfinancial_tab_price_array: financial_tab_price_array.toString()
+    };
 }
