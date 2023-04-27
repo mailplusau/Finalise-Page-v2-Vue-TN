@@ -10,7 +10,11 @@
 
         <CustomerInvoices />
 
+        <ServiceChanges />
+
         <ExtraFeatures />
+
+        <CommencementDetails />
 
         <CallCenter />
 
@@ -26,6 +30,8 @@ import CustomerContacts from "@/views/contacts/Main";
 import CustomerInvoices from "@/views/invoices/Main";
 import ExtraFeatures from "@/views/extras/Main";
 import CallCenter from "@/views/call-center/Main";
+import CommencementDetails from "@/views/comm-reg/Main";
+import ServiceChanges from "@/views/service-changes/Main";
 
 export default {
     name: 'App',
@@ -37,6 +43,8 @@ export default {
         CustomerInvoices,
         ExtraFeatures,
         CallCenter,
+        CommencementDetails,
+        ServiceChanges,
     },
     beforeCreate() {
         this.$store.dispatch('init');
