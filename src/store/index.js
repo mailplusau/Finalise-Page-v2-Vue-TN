@@ -76,10 +76,20 @@ async function _readAndVerifyUrlParams(context) {
         get: (searchParams, prop) => searchParams.get(prop),
     });
 
+    let paramCustomerId, paramSalesRecordId = null;
+
     try {
+        paramCustomerId = params['recid'] || null;
+        paramSalesRecordId = params['sales_record_id'] || null;
+
+        if (params['custparam_params']) {
+            let weirdParams = JSON.parse(params['custparam_params']);
+
+            paramCustomerId = weirdParams['custid'] || null;
+            paramSalesRecordId = weirdParams['sales_record_id'] || null;
+        }
         let {customerId, salesRecordId, userId, userRole} = await http.post('verifyParameters', {
-            customerId: params['recid'] || null,
-            salesRecordId: params['sales_record_id'] || null,
+            customerId: paramCustomerId, salesRecordId: paramSalesRecordId
         });
 
         context.state.userId = userId;
