@@ -25,6 +25,8 @@ const state = {
     yesNoOptions: [],
     mpExWeeklyUsageOptions: [],
     servicesOfInterestOptions: [],
+    commencementTypeOptions: [],
+    inOutOptions: [],
 };
 
 const getters = {
@@ -38,12 +40,16 @@ const getters = {
     yesNoOptions : state => state.yesNoOptions,
     mpExWeeklyUsageOptions : state => state.mpExWeeklyUsageOptions,
     servicesOfInterestOptions : state => state.servicesOfInterestOptions,
+    commencementTypeOptions : state => state.commencementTypeOptions,
+    inOutOptions : state => state.inOutOptions,
 };
 
 const mutations = {};
 
 const actions = {
     init : context => {
+        if (!context.rootGetters['customerId']) return;
+
         context.dispatch('getIndustries').then();
         context.dispatch('getLeadSources').then();
         context.dispatch('getFranchisees').then();
@@ -52,6 +58,8 @@ const actions = {
         context.dispatch('getYesNoOptions').then();
         context.dispatch('getMPExWeeklyUsageOptions').then();
         context.dispatch('getServicesOfInterestOptions').then();
+        context.dispatch('getCommencementTypeOptions').then();
+        context.dispatch('getInOutOptions').then();
     },
     getIndustries : async (context) => {
         await _fetchDataForHtmlSelect(context, context.state.industries,
@@ -84,7 +92,15 @@ const actions = {
     getServicesOfInterestOptions : async context => {
         await _fetchDataForHtmlSelect(context, context.state.servicesOfInterestOptions,
             null, 'customlist1081', 'internalId', 'name');
-    }
+    },
+    getCommencementTypeOptions : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.commencementTypeOptions,
+            null, 'customlist_sale_type', 'internalId', 'name');
+    },
+    getInOutOptions : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.inOutOptions,
+            null, 'customlist_in_outbound', 'internalId', 'name');
+    },
 };
 
 async function _fetchDataForHtmlSelect(context, stateObject, id, type, valueColumnName, textColumnName) {
