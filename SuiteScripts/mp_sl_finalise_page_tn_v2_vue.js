@@ -445,7 +445,8 @@ const postOperations = {
 
         if (parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_customer'})) === parseInt(customerId))
             _writeResponseJson(response, {
-                customerId, salesRecordId,
+                customerId: parseInt(customerId),
+                salesRecordId: parseInt(salesRecordId),
                 userId: runtime['getCurrentUser']().id,
                 userRole: runtime['getCurrentUser']().role,
             });
