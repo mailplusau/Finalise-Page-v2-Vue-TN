@@ -27,6 +27,10 @@
                     <b-icon :icon="item.defaultbilling ? 'check-lg' : 'x-lg'" :variant="item.defaultbilling ? 'success' : 'danger'"></b-icon>
                 </template>
 
+                <template v-slot:cell(label)="{item}">
+                    {{ item.label }}
+                </template>
+
                 <template v-slot:cell(geocoded)="{item}">
                     {{ item.custrecord_address_lat && item.custrecord_address_lon ? 'Yes' : 'No'}}
                 </template>
@@ -113,6 +117,7 @@ export default {
             {key: 'address', label: 'Address'},
             {key: 'shipping', label: 'Default Shipping'},
             {key: 'billing', label: 'Default Billing'},
+            {key: 'label', label: 'Label'},
             {key: 'geocoded', label: 'Geocoded'},
             {key: 'actions', label: ''},
         ],

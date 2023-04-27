@@ -73,11 +73,6 @@ const actions = {
 
         context.state.busy = false;
         context.state.disabled = false;
-
-        console.log(commRegs);
-    },
-    test : context => {
-        console.log(context.state.form);
     },
     save : async context => {
         context.state.busy = true;
