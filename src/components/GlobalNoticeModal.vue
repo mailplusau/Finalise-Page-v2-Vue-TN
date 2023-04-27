@@ -17,7 +17,7 @@
         </b-row>
 
         <template v-slot:modal-footer>
-            <b-button size="sm" @click="forceClose">Okie Dokie</b-button>
+            <b-button size="sm" @click="forceClose" :disabled="globalModal.busy">Okie Dokie</b-button>
         </template>
     </b-modal>
 
