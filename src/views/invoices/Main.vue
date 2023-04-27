@@ -5,7 +5,7 @@
                 <h1 class="text-center mp-header">Last 3 Invoices</h1>
             </div>
 
-            <b-table :items="invoices" :fields="invoiceColumns" head-row-variant="light" striped show-empty>
+            <b-table :items="invoices" :fields="invoiceColumns" head-row-variant="light" striped show-empty :busy="busy">
                 <template v-slot:empty>
                     No Invoice Found
                 </template>
@@ -42,6 +42,9 @@ export default {
     computed: {
         invoices() {
             return this.$store.getters['invoices/all'].slice(-3);
+        },
+        busy() {
+            return this.$store.getters['invoices/busy'];
         }
     }
 }
