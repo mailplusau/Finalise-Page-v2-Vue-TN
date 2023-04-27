@@ -79,6 +79,17 @@ const getters = {
     },
     postalState : state => state.postalState,
     postalLocations : state => state.postalLocations.map(item => ({value: item.internalid, text: item.name})),
+    defaultShippingStateId : (state, getters, rootState, rootGetters) => {
+        if (!state.shippingAddressAdded) return null;
+
+        let addressIndex = state.addresses.findIndex(item => item.internalid === state.shippingAddressAdded);
+
+        if (addressIndex < 0) return null;
+
+        let stateIndex = rootGetters['misc/states'].findIndex(item => item.text === state.addresses[addressIndex].state);
+
+        return stateIndex >= 0 ? rootGetters['misc/states'][stateIndex].value : null;
+    }
 }
 
 const mutations = {
