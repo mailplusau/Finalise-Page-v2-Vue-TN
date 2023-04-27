@@ -405,6 +405,11 @@ const getOperations = {
 
         _writeResponseJson(response, data);
     },
+    'getServiceChanges' : function (response, {customerId, commRegId}) {
+        if (!customerId) return _writeResponseJson(response, {error: `Invalid Customer ID: ${customerId}`});
+
+        _writeResponseJson(response, sharedFunctions.getServiceChangeRecords(customerId, commRegId));
+    },
     'getSalesCampaignActivities' : function (response, {customerId}) {
         let {search} = NS_MODULES;
         let data = [];
