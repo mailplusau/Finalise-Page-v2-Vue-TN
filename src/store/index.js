@@ -3,6 +3,8 @@ import Vuex from 'vuex';
 import modules from './modules';
 import http from "@/utils/http";
 
+const baseURL = 'https://' + process.env.VUE_APP_NS_REALM + '.app.netsuite.com';
+
 Vue.use(Vuex)
 
 const state = {
@@ -62,12 +64,17 @@ const actions = {
         context.dispatch('invoices/init').then();
         context.dispatch('extra-info/init').then();
         context.dispatch('misc/init').then();
-        context.dispatch('comm-reg/init').then();
+        context.dispatch('comm-reg/init').then(() => {
+            context.dispatch('service-changes/init');
+        });
     },
     handleException : (context, {title, message}) => {
         context.commit('displayErrorGlobalModal', {
             title, message
         })
+    },
+    goToNetSuiteCustomerPage : context => {
+        window.location.href = baseURL + '/app/common/entity/custjob.nl?id=' + context.state.customerId;
     }
 };
 
