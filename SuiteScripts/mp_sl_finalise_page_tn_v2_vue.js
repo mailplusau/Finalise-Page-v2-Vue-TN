@@ -13,9 +13,9 @@ const clientScriptFilename = 'mp_cl_finalise_page_tn_v2_vue.js';
 let NS_MODULES = {};
 
 
-define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record', 'N/email', 'N/runtime'],
-    (serverWidget, render, search, file, log, record, email, runtime) => {
-    NS_MODULES = {serverWidget, render, search, file, log, record, email, runtime};
+define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record', 'N/email', 'N/runtime', 'N/http', 'N/task'],
+    (serverWidget, render, search, file, log, record, email, runtime, http, task) => {
+    NS_MODULES = {serverWidget, render, search, file, log, record, email, runtime, http, task};
     
     const onRequest = ({request, response}) => {
         if (request.method === "GET") {
@@ -197,58 +197,9 @@ const getOperations = {
         _writeResponseJson(response, data);
     },
     'getCustomerContacts' : function (response, {customerId}) {
-        let {search} = NS_MODULES;
-        let contactForm = [
-            'internalid',
-            'salutation',
-            'firstname',
-            'lastname',
-            'phone',
-            'email',
-            'contactrole',
-            'title',
-            'company',
-            'entityid',
-            'custentity_connect_admin',
-            'custentity_connect_user',
-        ];
-        let data = [];
-
         if (!customerId) return _writeResponseJson(response, {error: `Invalid Customer ID: ${customerId}`});
 
-        let contactSearch = search.load({
-            id: 'customsearch_salesp_contacts',
-            type: 'contact'
-        });
-
-        contactSearch.filters.push(search.createFilter({
-            name: 'internalid',
-            join: 'CUSTOMER',
-            operator: search.Operator.ANYOF,
-            values: customerId
-        }));
-
-        contactSearch.filters.push(search.createFilter({
-            name: 'isinactive',
-            operator: search.Operator.IS,
-            values: false
-        }));
-
-        let result = contactSearch.run();
-
-        result.each((item) => {
-            let contactEntry = {};
-
-            for (let fieldId of contactForm) {
-                contactEntry[fieldId] = item.getValue({ name: fieldId });
-            }
-
-            data.push(contactEntry);
-
-            return true;
-        })
-
-        _writeResponseJson(response, data);
+        _writeResponseJson(response, sharedFunctions.getCustomerContacts(customerId));
     },
     'getCustomerInvoices' : function (response, {customerId}) {
         let {search} = NS_MODULES;
@@ -771,6 +722,90 @@ const sharedFunctions = {
             data[fieldId] = customerRecord.getValue({ fieldId });
 
         return data;
+    },
+    getCustomerContacts(customerId) {
+        let {search} = NS_MODULES;
+        let contactForm = [
+            'internalid',
+            'salutation',
+            'firstname',
+            'lastname',
+            'phone',
+            'email',
+            'contactrole',
+            'title',
+            'company',
+            'entityid',
+            'custentity_connect_admin',
+            'custentity_connect_user',
+        ];
+        let data = [];
+
+        let contactSearch = search.load({
+            id: 'customsearch_salesp_contacts',
+            type: 'contact'
+        });
+
+        contactSearch.filters.push(search.createFilter({
+            name: 'internalid',
+            join: 'CUSTOMER',
+            operator: search.Operator.ANYOF,
+            values: customerId
+        }));
+
+        contactSearch.filters.push(search.createFilter({
+            name: 'isinactive',
+            operator: search.Operator.IS,
+            values: false
+        }));
+
+        let result = contactSearch.run();
+
+        result.each((item) => {
+            let contactEntry = {};
+
+            for (let fieldId of contactForm) {
+                contactEntry[fieldId] = item.getValue({ name: fieldId });
+            }
+
+            data.push(contactEntry);
+
+            return true;
+        });
+
+        return data;
+    },
+    getServiceChangeRecords(customerId, commRegId) {
+        let {search} = NS_MODULES;
+        let serviceChangeRecords = [];
+
+        search.create({
+            id: 'customsearch_salesp_service_chg',
+            type: 'customrecord_servicechg',
+            filters: [
+                {name: 'custrecord_service_customer', join: 'CUSTRECORD_SERVICECHG_SERVICE', operator: search.Operator.IS, values: parseInt(customerId)},
+                {name: 'custrecord_servicechg_comm_reg', operator: search.Operator.IS, values: commRegId},
+                {name: 'custrecord_servicechg_status', operator: search.Operator.NONEOF, values: [2, 3]},
+            ],
+        }).run().each(result => {
+            serviceChangeRecords.push({
+                serviceId: result.getValue({fieldId: 'custrecord_servicechg_service'}),
+                serviceText: result.getText({fieldId: 'custrecord_servicechg_service'}),
+                serviceDescription: result.getValue({fieldId: 'custrecord_service_description', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
+                serviceTypeID: result.getValue({fieldId: 'custrecord_service', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
+                oldServicePrice: result.getValue({fieldId: 'custrecord_service_price', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
+                nsItem: result.getValue({fieldId: 'custrecord_service_ns_item', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
+                newServiceChangePrice: result.getValue({fieldId: 'custrecord_servicechg_new_price'}),
+                dateEffective: result.getValue({fieldId: 'custrecord_servicechg_date_effective'}),
+                commRegId: result.getValue({fieldId: 'custrecord_servicechg_comm_reg'}),
+                serviceChangeTypeText: result.getText({fieldId: 'custrecord_servicechg_type'}),
+                serviceChangeFreqText: result.getText({fieldId: 'custrecord_servicechg_new_freq'}),
+            });
+
+            return true;
+        });
+
+        return serviceChangeRecords;
     }
 };
 
