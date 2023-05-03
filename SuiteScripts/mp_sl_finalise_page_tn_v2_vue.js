@@ -13,9 +13,9 @@ const clientScriptFilename = 'mp_cl_finalise_page_tn_v2_vue.js';
 let NS_MODULES = {};
 
 
-define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record', 'N/email', 'N/runtime', 'N/http', 'N/task'],
-    (serverWidget, render, search, file, log, record, email, runtime, http, task) => {
-    NS_MODULES = {serverWidget, render, search, file, log, record, email, runtime, http, task};
+define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record', 'N/email', 'N/runtime', 'N/https', 'N/task'],
+    (serverWidget, render, search, file, log, record, email, runtime, https, task) => {
+    NS_MODULES = {serverWidget, render, search, file, log, record, email, runtime, https, task};
     
     const onRequest = ({request, response}) => {
         if (request.method === "GET") {
@@ -450,6 +450,7 @@ const getOperations = {
             filters: [
                 {name: 'custrecord_customer', operator: search.Operator.IS, values: parseInt(customerId)},
                 {name: 'custrecord_commreg_sales_record', operator: search.Operator.IS, values: parseInt(salesRecordId)},
+                {name: 'custrecord_trial_status', operator: search.Operator.ANYOF, values: [9, 10]},
             ],
             columns: fieldIds.map(item => ({name: item}))
         }).run().each(result => {
@@ -706,6 +707,14 @@ const postOperations = {
                     {name: 'custrecord_servicechg_comm_reg', operator: search.Operator.IS, values: parseInt(commRegId)},
                     {name: 'custrecord_servicechg_status', operator: search.Operator.ANYOF, values: [1, 2, 4]},
                 ],
+                columns: [
+                    {name: 'custrecord_servicechg_service'},
+                    {name: 'custrecord_service_price', join: "CUSTRECORD_SERVICECHG_SERVICE"},
+                    {name: 'custrecord_servicechg_new_price'},
+                    {name: 'custrecord_servicechg_date_effective'},
+                    {name: 'custrecord_servicechg_type'},
+                    {name: 'custrecord_servicechg_new_freq'},
+                ]
             }).run().each(result => {
                 serviceChangeCount++;
 
@@ -713,7 +722,7 @@ const postOperations = {
                 let oldServicePrice = result.getValue({name: "custrecord_service_price", join: "CUSTRECORD_SERVICECHG_SERVICE"});
                 let newServiceChangePrice = result.getValue('custrecord_servicechg_new_price');
                 let dateEffective = result.getValue('custrecord_servicechg_date_effective');
-                let serviceChangeTypeText = result.getText('custrecord_servicechg_type');
+                let serviceChangeTypeText = result.getValue('custrecord_servicechg_type');
                 let serviceChangeFreqText = result.getText('custrecord_servicechg_new_freq');
 
                 emailBody += 'Service Name: ' + serviceText + '</br>';
@@ -737,7 +746,7 @@ const postOperations = {
 
         _writeResponseJson(response, {commRegId, serviceChangeCount});
     },
-    'saveCommencementRegister' : function (response, {userId, customerId, salesRecordId, commRegData, fileContent, fileName}) {
+    'saveCommencementRegister' : function (response, {userId, customerId, salesRecordId, commRegData, servicesChanged, fileContent, fileName}) {
         let {log, file, record, search} = NS_MODULES;
         let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
         let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId});
@@ -769,6 +778,11 @@ const postOperations = {
             record.load({type: 'customrecord_commencement_register', id: commRegData.internalid}) :
             record.create({type: 'customrecord_commencement_register'});
 
+        commRegData['custrecord_date_entry'] = _parseIsoDatetime(commRegData['custrecord_date_entry']);
+        commRegData['custrecord_comm_date'] = _parseIsoDatetime(commRegData['custrecord_comm_date']);
+        commRegData['custrecord_comm_date_signup'] = _parseIsoDatetime(commRegData['custrecord_comm_date_signup']);
+        commRegData['custrecord_finalised_on'] = _parseIsoDatetime(commRegData['custrecord_finalised_on']);
+
         for (let fieldId in commRegData)
             commRegRecord.setValue({fieldId, value: commRegData[fieldId]});
 
@@ -783,6 +797,7 @@ const postOperations = {
                 {name: 'custrecord_servicechg_comm_reg', operator: search.Operator.IS, values: commRegId},
                 {name: 'custrecord_servicechg_status', operator: search.Operator.NONEOF, values: [2, 3]},
             ],
+            columns: [{name: 'internalid'}]
         }).run().each(result => {
 
             let serviceChangeRecord = record.load({type: 'customrecord_servicechg', id: result.getValue('internalid')});
@@ -818,7 +833,8 @@ const postOperations = {
         }
         customerRecord.save({ignoreMandatoryFields: true});
 
-        _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegId);
+        if (servicesChanged)
+            _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegId);
 
         // End
         _writeResponseJson(response, {commRegId});
@@ -897,31 +913,42 @@ const sharedFunctions = {
         let {search} = NS_MODULES;
         let serviceChangeRecords = [];
 
-        search.create({
-            id: 'customsearch_salesp_service_chg',
-            type: 'customrecord_servicechg',
-            filters: [
-                {name: 'custrecord_service_customer', join: 'CUSTRECORD_SERVICECHG_SERVICE', operator: search.Operator.IS, values: parseInt(customerId)},
-                {name: 'custrecord_servicechg_comm_reg', operator: search.Operator.IS, values: commRegId},
-                {name: 'custrecord_servicechg_status', operator: search.Operator.NONEOF, values: [2, 3]},
-            ],
-        }).run().each(result => {
+        let searchObj = search.load({id: 'customsearch_salesp_service_chg', type: 'customrecord_servicechg'});
+        searchObj.filters.push(search.createFilter({
+            name: 'custrecord_service_customer',
+            join: 'CUSTRECORD_SERVICECHG_SERVICE',
+            operator: 'anyof',
+            values: customerId,
+        }));
+        searchObj.filters.push(search.createFilter({
+            name: 'custrecord_servicechg_comm_reg',
+            join: null,
+            operator: 'anyof',
+            values: commRegId,
+        }));
+        searchObj.filters.push(search.createFilter({
+            name: 'custrecord_servicechg_status',
+            join: null,
+            operator: 'noneof',
+            values: [2, 3],
+        }));
+        searchObj.run().each(result => {
             serviceChangeRecords.push({
-                serviceId: result.getValue({fieldId: 'custrecord_servicechg_service'}),
-                serviceText: result.getText({fieldId: 'custrecord_servicechg_service'}),
-                serviceDescription: result.getValue({fieldId: 'custrecord_service_description', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
-                serviceTypeID: result.getValue({fieldId: 'custrecord_service', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
-                oldServicePrice: result.getValue({fieldId: 'custrecord_service_price', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
-                nsItem: result.getValue({fieldId: 'custrecord_service_ns_item', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
-                newServiceChangePrice: result.getValue({fieldId: 'custrecord_servicechg_new_price'}),
-                dateEffective: result.getValue({fieldId: 'custrecord_servicechg_date_effective'}),
-                commRegId: result.getValue({fieldId: 'custrecord_servicechg_comm_reg'}),
-                serviceChangeTypeText: result.getText({fieldId: 'custrecord_servicechg_type'}),
-                serviceChangeFreqText: result.getText({fieldId: 'custrecord_servicechg_new_freq'}),
+                serviceId: result.getValue({name: 'custrecord_servicechg_service'}),
+                serviceText: result.getText({name: 'custrecord_servicechg_service'}),
+                serviceDescription: result.getValue({name: 'custrecord_service_description', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
+                serviceTypeID: result.getValue({name: 'custrecord_service', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
+                oldServicePrice: result.getValue({name: 'custrecord_service_price', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
+                nsItem: result.getValue({name: 'custrecord_service_ns_item', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
+                newServiceChangePrice: result.getValue({name: 'custrecord_servicechg_new_price'}),
+                dateEffective: result.getValue({name: 'custrecord_servicechg_date_effective'}),
+                commRegId: result.getValue({name: 'custrecord_servicechg_comm_reg'}),
+                serviceChangeTypeText: result.getText({name: 'custrecord_servicechg_type'}),
+                serviceChangeFreqText: result.getText({name: 'custrecord_servicechg_new_freq'}),
             });
 
             return true;
-        });
+        })
 
         return serviceChangeRecords;
     }
@@ -1076,7 +1103,7 @@ function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipp
 }
 
 function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegId) {
-    let {http, email, record, task} = NS_MODULES;
+    let {https, email, record, task} = NS_MODULES;
     let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
     let entityId = customerRecord.getValue({fieldId: 'entityid'});
     let companyName = customerRecord.getValue({fieldId: 'companyname'});
@@ -1125,7 +1152,7 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
         headers['Accept'] = 'application/json';
         headers['x-api-key'] = 'XAZkNK8dVs463EtP7WXWhcUQ0z8Xce47XklzpcBj';
 
-        http.post({
+        https.post({
             url: 'https://mpns.protechly.com/new_staff',
             body: userJSON,
             headers
@@ -1137,7 +1164,7 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
         taskRecord.setValue({fieldId: 'company', value: customerId});
         taskRecord.setValue({fieldId: 'sendemail', value: true});
         taskRecord.setValue({fieldId: 'message', value: ''});
-        taskRecord.setValue({fieldId: 'status', value: 'Not Started'});
+        taskRecord.setText({fieldId: 'status', text: 'Not Started'});
         taskRecord.save({ignoreMandatoryFields: true});
 
         email.sendBulk({
@@ -1180,7 +1207,7 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
     headers['Accept'] = 'application/json';
     headers['x-api-key'] = 'XAZkNK8dVs463EtP7WXWhcUQ0z8Xce47XklzpcBj';
 
-    http.post({
+    https.post({
         url: 'https://mpns.protechly.com/new_customer',
         body: customerJSON,
         headers
@@ -1310,4 +1337,9 @@ function _prepareScheduledScriptParams(customerId, commRegId) {
         custscriptfinancial_tab_array: financial_tab_item_array.toString(),
         custscriptfinancial_tab_price_array: financial_tab_price_array.toString()
     };
+}
+
+function _parseIsoDatetime(dateString) {
+    let dt = dateString.split(/[: T-]/).map(parseFloat);
+    return new Date(dt[0], dt[1] - 1, dt[2], dt[3] || 0, dt[4] || 0, dt[5] || 0, 0);
 }
