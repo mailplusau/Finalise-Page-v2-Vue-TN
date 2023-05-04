@@ -19,6 +19,7 @@ const state = {
         custrecord_finalised_by: '',
         custrecord_finalised_on: '',
     },
+    formFileUrl: null,
     texts: {},
     form: {},
     formFile: {
@@ -37,6 +38,7 @@ const getters = {
     disabled : state => state.disabled,
     formFile : state => state.formFile,
     id : state => state.data.internalid,
+    formFileUrl : state => state.formFileUrl,
 };
 
 const mutations = {
@@ -53,26 +55,30 @@ const actions = {
         if (!context.rootGetters['customerId'] || !context.rootGetters['salesRecordId'] || context.rootGetters['callCenterMode'])
             return;
 
-        let fieldIds = [];
-        for (let fieldId in context.state.data) fieldIds.push(fieldId);
+        try {
+            let fieldIds = [];
+            for (let fieldId in context.state.data) fieldIds.push(fieldId);
 
-        let commRegs = await http.get('getCommencementRegister', {
-            customerId: context.rootGetters['customerId'],
-            salesRecordId: context.rootGetters['salesRecordId'],
-            fieldIds
-        });
+            let commRegs = await http.get('getCommencementRegister', {
+                customerId: context.rootGetters['customerId'],
+                salesRecordId: context.rootGetters['salesRecordId'],
+                fieldIds
+            });
 
-        if (commRegs.length === 1) { // only take the first and only register (??)
-            for (let fieldId in context.state.data) {
-                context.state.data[fieldId] = commRegs[0][fieldId];
-                context.state.texts[fieldId] = commRegs[0][fieldId + '_text'];
+            if (commRegs.length === 1) { // only take the first and only register (??)
+                for (let fieldId in context.state.data) {
+                    context.state.data[fieldId] = commRegs[0][fieldId];
+                    context.state.texts[fieldId] = commRegs[0][fieldId + '_text'];
+                }
             }
-        }
 
-        context.commit('resetForm');
+            await context.dispatch('generateFormFileURL');
 
-        context.state.busy = false;
-        context.state.disabled = false;
+            context.commit('resetForm');
+
+            context.state.busy = false;
+            context.state.disabled = false;
+        } catch (e) { console.error(e); }
     },
     save : async context => {
         if (!context.rootGetters['customerId'] || !context.rootGetters['salesRecordId'] || context.rootGetters['callCenterMode'])
@@ -114,6 +120,20 @@ const actions = {
 
         context.state.busy = false;
         context.state.disabled = false;
+    },
+    generateFormFileURL : async context => {
+        if (context.state.formFile.file)
+            context.state.formFileUrl = URL.createObjectURL(context.state.formFile.file)
+        else if (context.state.data.custrecord_scand_form) {
+            try {
+                let {fileURL} = await http.get('getFileURLById', {
+                    fileId: context.state.data.custrecord_scand_form
+                });
+                context.state.formFileUrl = fileURL;
+            } catch (e) { console.error(e); }
+        } else
+            context.state.formFileUrl = null;
+
     }
 };
 

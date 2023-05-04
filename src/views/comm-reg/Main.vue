@@ -1,5 +1,5 @@
 <template>
-    <FileDropZone v-model="formFile.file" :disabled="formDisabled || busy" class="mb-4" v-if="!$store.getters['callCenterMode']">
+    <FileDropZone v-model="formFile.file" :disabled="false" class="mb-4" v-if="!$store.getters['callCenterMode']">
         <template v-slot:default="{files, openFileDialog, removeAllFiles, isDisabled}">
             <b-card border-variant="primary" class="my-3" bg-variant="transparent">
                 <div class="row justify-content-center" >
@@ -56,8 +56,10 @@
                                           placeholder="Choose a file or drop it here..."
                                           :class="errors.has('commencement_form') ? 'is-invalid' : ''" readonly :disabled="isDisabled"></b-form-input>
 
-                            <b-input-group-append v-if="files[0]">
-                                <b-button variant="outline-danger" @click="removeAllFiles" title="Cancel file upload"><b-icon icon="trash"></b-icon></b-button>
+                            <b-input-group-append>
+                                <b-button v-if="files[0]" variant="outline-danger" @click="removeAllFiles" title="Cancel file upload"><b-icon icon="trash"></b-icon></b-button>
+                                <b-button v-if="files[0] || form.custrecord_scand_form" @click="modalOpen = true"
+                                          variant="outline-success" title="View this file"><b-icon icon="eye"></b-icon></b-button>
                             </b-input-group-append>
 
                             <b-form-invalid-feedback :state="!errors.has('commencement_form')">{{ errors.first('commencement_form') }}</b-form-invalid-feedback>
@@ -74,6 +76,17 @@
                     </div>
                 </div>
             </b-card>
+
+
+            <b-modal id="modal-contact-deletion" size="lg" centered v-model="modalOpen" hide-footer>
+                <template v-slot:modal-header>
+                    <h5 class="text-center">Preview</h5>
+                    <b-button size="sm" @click="modalOpen = false">Close</b-button>
+                </template>
+
+                <iframe v-if="formFileUrl" style="width: 100%; height: 80vh;" :src="formFileUrl"></iframe>
+                <p v-else>File Not Found</p>
+            </b-modal>
         </template>
     </FileDropZone>
 </template>
@@ -84,9 +97,19 @@ export default {
     name: "Main",
     components: {FileDropZone},
     data: () => ({
-        file: null
+        file: null,
+        modalOpen: false,
     }),
     methods: {
+        getFile(file) {
+            if (file)
+                return URL.createObjectURL(file);
+
+            if (this.form.custrecord_scand_form)
+                return this.form.custrecord_scand_form;
+
+            return null;
+        },
         save() {
             this.$validator.validateAll().then((result) => {
                 if (result) {
@@ -114,6 +137,14 @@ export default {
         },
         formFile() {
             return this.$store.getters['comm-reg/formFile'];
+        },
+        formFileUrl() {
+            return this.$store.getters['comm-reg/formFileUrl'];
+        }
+    },
+    watch: {
+        'formFile.file' : function () {
+            this.$store.dispatch('comm-reg/generateFormFileURL');
         }
     }
 }
