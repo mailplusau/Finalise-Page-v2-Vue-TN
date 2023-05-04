@@ -36,6 +36,7 @@ const state = {
 
         custentity_cancel_ongoing: '',
     },
+    texts: {},
     detailForm: {},
     detailFormValid: false,
     detailFormDisabled: true,
@@ -51,6 +52,7 @@ const state = {
 let getters = {
     busy : state => state.busy,
     details : state => state.details,
+    texts : state => state.texts,
     detailForm : state => state.detailForm,
     detailFormValid : state => state.detailFormValid,
     detailFormDisabled : state => state.detailFormDisabled,
@@ -86,7 +88,10 @@ let actions = {
                     fieldIds,
                 });
 
-                for (let fieldId in context.state.details) context.state.details[fieldId] = data[fieldId];
+                for (let fieldId in context.state.details) {
+                    context.state.details[fieldId] = data[fieldId];
+                    context.state.texts[fieldId] = data[fieldId + '_text'];
+                }
 
                 _updateFormTitleAndHeader(context)
 
@@ -129,7 +134,10 @@ let actions = {
                 fieldIds,
             });
 
-            for (let fieldId in context.state.details) context.state.details[fieldId] = data[fieldId];
+            for (let fieldId in context.state.details) {
+                context.state.details[fieldId] = data[fieldId];
+                context.state.texts[fieldId] = data[fieldId + '_text'];
+            }
 
             context.commit('resetDetailForm');
         } catch (e) { console.error(e); }

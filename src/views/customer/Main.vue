@@ -102,10 +102,7 @@
             </div>
             <div class="col-6 mb-4">
                 <b-input-group prepend="Status">
-                    <b-form-select v-model="detailForm.entitystatus" v-validate="''" data-vv-name="status"
-                                   :options="$store.getters['misc/statuses']" disabled></b-form-select>
-
-                    <b-form-invalid-feedback :state="!errors.has('status')">{{ errors.first('status') }}</b-form-invalid-feedback>
+                    <b-form-input v-model="detailTexts.entitystatus" disabled></b-form-input>
                 </b-input-group>
             </div>
             <div class="col-12" v-if="hasInternalId">
@@ -169,6 +166,9 @@ export default {
     computed: {
         detailForm() {
             return this.$store.getters['customer/detailForm'];
+        },
+        detailTexts() {
+            return this.$store.getters['customer/texts'];
         },
         formDisabled() {
             return (this.$store.getters['customer/detailFormDisabled'] || this.$store.getters['customer/busy']);
