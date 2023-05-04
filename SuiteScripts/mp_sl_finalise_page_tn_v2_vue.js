@@ -859,8 +859,10 @@ const sharedFunctions = {
             id: customerId,
         });
 
-        for (let fieldId of fieldIds)
-            data[fieldId] = customerRecord.getValue({ fieldId });
+        for (let fieldId of fieldIds) {
+            data[fieldId] = customerRecord.getValue({fieldId});
+            data[fieldId + '_text'] = customerRecord.getText({fieldId});
+        }
 
         return data;
     },
