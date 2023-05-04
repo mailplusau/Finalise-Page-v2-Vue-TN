@@ -10,3 +10,5 @@ export function debounce(fn, wait){
         }, wait);
     }
 }
+
+export const ACTION_CHECK_FOR_UNSAVED_CHANGES = 'checkForUnsavedChanges';

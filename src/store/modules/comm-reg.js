@@ -78,6 +78,8 @@ const actions = {
         if (!context.rootGetters['customerId'] || !context.rootGetters['salesRecordId'] || context.rootGetters['callCenterMode'])
             return;
 
+        if(!await context.dispatch('checkForUnsavedChanges', null, {root: true})) return;
+
         context.state.busy = true;
         context.state.disabled = true;
         context.commit('displayBusyGlobalModal',

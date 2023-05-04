@@ -1,4 +1,5 @@
 import getNSModules from '../../utils/ns-modules';
+import {ACTION_CHECK_FOR_UNSAVED_CHANGES} from "@/utils/utils";
 import http from "@/utils/http";
 
 // const financeRole = [1001, 1031, 1023];
@@ -9,6 +10,7 @@ import http from "@/utils/http";
 const state = {
     busy: true,
     details: {
+        entityid: '',
         companyname: '',
         vatregnumber: '',
         email: '',
@@ -72,8 +74,6 @@ let actions = {
         if (!context.rootGetters['customerId']) return;
 
         context.dispatch('getDetails').then();
-
-        context.commit('setBusy', false);
     },
     getDetails : async (context) => {
         if (context.rootGetters['customerId']) {
@@ -91,6 +91,8 @@ let actions = {
                 _updateFormTitleAndHeader(context)
 
                 context.commit('disableDetailForm');
+
+                context.commit('setBusy', false);
             } catch (e) {console.error(e);}
         }
 
@@ -137,12 +139,16 @@ let actions = {
     },
 };
 
+actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
+    return !context.state.busy && !context.state.detailFormDisabled ? ['Customer\'s Details'] : '';
+}
+
 function _updateFormTitleAndHeader(context) {
     let title, header;
 
     header = context.rootGetters['callCenterMode'] ? 'Call Center: ' : 'Finalise X Sale: ';
 
-    header += context.rootGetters['customerId'] + ' ' + context.state.details.companyname;
+    header += context.state.details.entityid + ' ' + context.state.details.companyname;
 
     title = header + ' - NetSuite Australia (Mail Plus Pty Ltd)';
 

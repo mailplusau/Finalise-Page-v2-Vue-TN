@@ -1,6 +1,6 @@
 <template>
 
-    <b-modal id="modal-contact-deletion" centered v-model="modalOpen" @hide="handleModalHide">
+    <b-modal centered v-model="modalOpen" @hide="handleModalHide">
         <template v-slot:modal-header>
             <h5 class="text-center text-danger" v-if="globalModal.isError"><b-icon icon="exclamation-triangle"></b-icon> {{globalModal.title}}</h5>
             <h5 class="text-center" v-else>{{globalModal.title}}</h5>
@@ -12,7 +12,7 @@
                 ></b-spinner>
             </b-col>
             <b-col cols="12" class="text-center">
-                {{globalModal.body}}
+                <span v-html="globalModal.body"></span>
             </b-col>
         </b-row>
 

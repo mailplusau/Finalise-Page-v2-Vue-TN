@@ -1,4 +1,5 @@
 import http from "@/utils/http";
+import {ACTION_CHECK_FOR_UNSAVED_CHANGES} from "@/utils/utils";
 
 const state = {
     currentServices: {
@@ -277,6 +278,24 @@ const actions = {
         context.state.surveyInfo.busy = false;
     }
 };
+
+actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
+    let unsavedChanges = []
+
+    if (!context.state.currentServices.busy && !context.state.currentServices.formDisabled)
+        unsavedChanges.push('Current Services Tab');
+
+    if (!context.state.mpProducts.busy && !context.state.mpProducts.formDisabled)
+        unsavedChanges.push('MP Product Tab');
+
+    if (!context.state.salesNotes.busy && !context.state.salesNotes.formDisabled)
+        unsavedChanges.push('Sales Notes Tab');
+
+    if (!context.state.surveyInfo.busy && !context.state.surveyInfo.formDisabled)
+        unsavedChanges.push('Survey Information Tab');
+
+    return unsavedChanges;
+}
 
 export default {
     state,

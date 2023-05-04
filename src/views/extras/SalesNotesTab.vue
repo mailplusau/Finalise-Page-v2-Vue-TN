@@ -1,5 +1,8 @@
 <template>
-    <b-tab title="Sales Notes">
+    <b-tab>
+        <template v-slot:title>
+            <span :class="formDisabled ? '' : 'unsaved-header'">Sales Notes</span>
+        </template>
         <b-row>
             <b-col cols="12" class="mb-3">
                 <b-form-group

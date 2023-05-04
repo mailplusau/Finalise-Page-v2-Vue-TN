@@ -1,5 +1,8 @@
 <template>
-    <b-tab title="Survey Information">
+    <b-tab>
+        <template v-slot:title>
+            <span :class="formDisabled ? '' : 'unsaved-header'">Survey Information</span>
+        </template>
         <b-row>
             <div class="col-6 mb-4">
                 <b-input-group prepend="Services of Interest">

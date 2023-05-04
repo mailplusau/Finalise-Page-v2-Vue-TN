@@ -122,6 +122,15 @@ body.modal-open {
     color: #387080;
 }
 
+.unsaved-header {
+    /*text-decoration: underline;*/
+    color: red !important;
+}
+
+.unsaved-header:after {
+    content:" •";
+}
+
 .mp-text {
     color: #103d39
 }

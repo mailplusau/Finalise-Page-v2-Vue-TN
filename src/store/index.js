@@ -2,6 +2,7 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 import modules from './modules';
 import http from "@/utils/http";
+import {ACTION_CHECK_FOR_UNSAVED_CHANGES} from "@/utils/utils";
 
 const baseURL = 'https://' + process.env.VUE_APP_NS_REALM + '.app.netsuite.com';
 
@@ -75,6 +76,29 @@ const actions = {
     },
     goToNetSuiteCustomerPage : context => {
         window.location.href = baseURL + '/app/common/entity/custjob.nl?id=' + context.state.customerId;
+    },
+    checkForUnsavedChanges : async context => {
+        let unsavedChanges = [];
+
+        // looping through modules and check for ACTION_CHECK_FOR_UNSAVED_CHANGES, if it exists, call it
+        for (let module in modules) {
+            if (Object.hasOwnProperty.call(modules, module) && modules[module].actions[ACTION_CHECK_FOR_UNSAVED_CHANGES]) {
+                let res = await context.dispatch(module + '/' + ACTION_CHECK_FOR_UNSAVED_CHANGES);
+                unsavedChanges = Array.isArray(res) ? [...unsavedChanges, ...res] : (res ? [...unsavedChanges, res] : unsavedChanges);
+            }
+        }
+
+        if (unsavedChanges.length) {
+            unsavedChanges.unshift('Please check the following sections for unsaved changes:')
+            context.commit('displayErrorGlobalModal', {
+                title: 'There are unsaved changes',
+                message: unsavedChanges.join('<br>')
+            });
+
+            return false;
+        }
+
+        return true;
     }
 };
 

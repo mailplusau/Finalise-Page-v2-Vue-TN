@@ -1,5 +1,8 @@
 <template>
-    <b-tab title="MP Products">
+    <b-tab>
+        <template v-slot:title>
+            <span :class="formDisabled ? '' : 'unsaved-header'">MP Products</span>
+        </template>
         <b-row>
             <div class="col-12 mb-4">
                 <h2>MPEX Settings</h2>

@@ -1,5 +1,8 @@
 <template>
-    <b-tab title="Current Services">
+    <b-tab>
+        <template v-slot:title>
+            <span :class="formDisabled ? '' : 'unsaved-header'">Current Services</span>
+        </template>
         <b-row>
             <div class="col-12 mb-4">
                 <h2>Franchisee Entered Service Details</h2>
