@@ -64,7 +64,7 @@
                 </b-button>
             </div>
             <div class="col-3 mb-3 d-grid">
-                <b-button variant="danger" @click="open('call-center/handleNoAnswerEmail', 'Not Established')">
+                <b-button variant="danger" @click="open('call-center/handleNotEstablished', 'Not Established')">
                     Not Established
                 </b-button>
             </div>
@@ -132,7 +132,9 @@ export default {
         showSalesNote: false,
     }),
     methods: {
-        open(action, title, showSalesNote = true) {
+        async open(action, title, showSalesNote = true) {
+            if(!await this.$store.dispatch('checkForUnsavedChanges')) return;
+
             this.action = action;
             this.title = title;
             this.showSalesNote = showSalesNote;

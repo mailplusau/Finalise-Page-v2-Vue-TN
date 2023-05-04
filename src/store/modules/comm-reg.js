@@ -110,6 +110,7 @@ const actions = {
                 salesRecordId: context.rootGetters['salesRecordId'],
                 commRegData: context.state.form,
                 servicesChanged: serviceChanges.length > 0,
+                localUTCOffset: new Date().getTimezoneOffset(),
                 fileContent,
                 fileName,
             });

@@ -15,7 +15,7 @@ const mutations = {
 };
 
 const actions = {
-    redirectToNetSuiteCustomerPage : context => {
+    redirectToNetSuiteCustomerPage : async context => {
         if (!context.rootGetters['customerId']) return;
 
         context.commit('displayBusyGlobalModal',
@@ -25,12 +25,11 @@ const actions = {
     },
     handleNoAnswerOnPhone : async context => {
         context.commit('displayBusyGlobalModal',
-            {title: 'Redirecting...', message: 'Redirecting to Sales Campaign Module. Please Wait...', open: true}, {root: true});
+            {title: 'Processing...', message: 'Processing outcome [No Answer - Phone Call]. Please Wait...', open: true}, {root: true});
 
-        await _createSalesNote(context);
-
-        let url = baseURL + window['nlapiResolveURL']('suitelet', 'customscript_sl_salescamp_noanswer', 'customdeploy_sl_salescamp_noanswer');
-        window.open(url, "Window", "height=300,width=300,modal=yes,alwaysRaised=yes,location=0,toolbar=0");
+        if (await _sendCallCenterOutcome(context, 'NO_ANSWER_PHONE'))
+            context.commit('displayInfoGlobalModal',
+                {title: 'Complete', message: 'Customer has been marked as [No Answer - Phone Call].'}, {root: true});
     },
     sendEmailSigned : async context => {
         context.commit('displayBusyGlobalModal',
@@ -52,9 +51,8 @@ const actions = {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
 
-        await _sendCallCenterOutcome(context, 'NO_SALE');
-
-        context.dispatch('redirectToNetSuiteCustomerPage').then();
+        if (await _sendCallCenterOutcome(context, 'NO_ANSWER_EMAIL'))
+            context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
     setAppointment : async context => {
         context.commit('displayBusyGlobalModal',
@@ -68,9 +66,8 @@ const actions = {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
 
-        await _sendCallCenterOutcome(context, 'NO_RESPONSE_EMAIL');
-
-        context.dispatch('redirectToNetSuiteCustomerPage').then();
+        if (await _sendCallCenterOutcome(context, 'NO_RESPONSE_EMAIL'))
+            context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
     sendEmailQuoteSavedCustomer : async context => {
         context.commit('displayBusyGlobalModal',
@@ -92,9 +89,8 @@ const actions = {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
 
-        await _sendCallCenterOutcome(context, 'NOT_ESTABLISHED');
-
-        context.dispatch('redirectToNetSuiteCustomerPage').then();
+        if (await _sendCallCenterOutcome(context, 'NOT_ESTABLISHED'))
+            context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
     reassignToRep : async context => {
         context.commit('displayBusyGlobalModal',
@@ -125,9 +121,8 @@ const actions = {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
 
-        await _sendCallCenterOutcome(context, 'FOLLOW_UP');
-
-        context.dispatch('redirectToNetSuiteCustomerPage').then();
+        if (await _sendCallCenterOutcome(context, 'FOLLOW_UP'))
+            context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
     notifyITTeam : async context => {
         context.commit('displayBusyGlobalModal',
@@ -187,11 +182,16 @@ async function _sendCallCenterOutcome(context, outcome) {
             customerId: context.rootGetters['customerId'],
             salesRecordId: context.rootGetters['salesRecordId'],
             userId: context.rootGetters['userId'],
+            localUTCOffset: new Date().getTimezoneOffset(),
             outcome
         });
 
         context.state.salesNote = '';
-    } catch (e) { console.error(e); }
+        return true;
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
 }
 
 export default {
