@@ -1,7 +1,7 @@
 <template>
-    <FileDropZone v-model="formFile.file" :disabled="false" class="mb-4">
+    <FileDropZone v-model="formFile.file" :disabled="formDisabled || busy" class="mb-4" v-if="!$store.getters['callCenterMode']">
         <template v-slot:default="{files, openFileDialog, removeAllFiles, isDisabled}">
-            <b-card border-variant="primary" class="my-3" bg-variant="transparent" v-if="!$store.getters['callCenterMode']">
+            <b-card border-variant="primary" class="my-3" bg-variant="transparent">
                 <div class="row justify-content-center" >
                     <div class="col-12 mb-4">
                         <h1 class="text-center mp-header">Commencement Details</h1>
@@ -51,8 +51,8 @@
                     </div>
                     <div class="col-6 mb-4">
                         <b-input-group prepend="Commencement Form">
-                            <b-form-input :value="files[0] ? files[0].name : 'File Cabinet ID #' + form.custrecord_scand_form"  @click="openFileDialog"
-                                          v-validate="'required'" data-vv-name="commencement_form"
+                            <b-form-input :value="files[0] ? files[0].name : (form.custrecord_scand_form ? 'File Cabinet ID #' + form.custrecord_scand_form : '')"
+                                          @click="openFileDialog" v-validate="'required'" data-vv-name="commencement_form"
                                           placeholder="Choose a file or drop it here..."
                                           :class="errors.has('commencement_form') ? 'is-invalid' : ''" readonly :disabled="isDisabled"></b-form-input>
 
@@ -65,8 +65,11 @@
                     </div>
 
                     <div class="col-12 mb-4">
-                        <b-button size="lg" variant="success" @click="save">
-                            Save Commencement Register
+                        <b-button v-if="serviceChanges.length" size="lg" variant="success" @click="save">
+                            Finalise Customer
+                        </b-button>
+                        <b-button v-else size="sm" variant="success" @click="save" :disabled="formDisabled || busy">
+                            Save Commencement Register & Create Service Change <b-icon icon="box-arrow-up-right" scale=".6"></b-icon>
                         </b-button>
                     </div>
                 </div>
@@ -94,6 +97,9 @@ export default {
         }
     },
     computed: {
+        serviceChanges() {
+            return this.$store.getters['service-changes/all'];
+        },
         form() {
             return this.$store.getters['comm-reg/form'];
         },

@@ -10,9 +10,9 @@
 
         <CustomerInvoices />
 
-        <ServiceChanges />
-
         <ExtraFeatures />
+
+        <ServiceChanges />
 
         <CommencementDetails />
 

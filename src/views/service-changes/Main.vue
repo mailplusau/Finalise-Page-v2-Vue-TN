@@ -1,5 +1,5 @@
 <template>
-    <b-card border-variant="primary" bg-variant="transparent" class="mt-3">
+    <b-card border-variant="primary" bg-variant="transparent" class="mt-3" v-if="!$store.getters['callCenterMode']">
         <div class="row justify-content-center" >
             <div class="col-12">
                 <h1 class="text-center mp-header">Service Changes</h1>
@@ -19,8 +19,11 @@
             </b-table>
 
             <b-col cols="12">
-                <b-button variant="primary" @click="goToServiceChangePage" :disabled="busy" size="sm">
+                <b-button v-if="$store.getters['comm-reg/id']" variant="primary" @click="goToServiceChangePage" :disabled="busy" size="sm">
                     Create & Update Service Changes <b-icon icon="box-arrow-up-right" scale=".6"></b-icon>
+                </b-button>
+                <b-button v-else variant="outline-primary" size="sm" disabled>
+                    Please create a Commencement Register first
                 </b-button>
             </b-col>
         </div>
