@@ -13,9 +13,9 @@ const clientScriptFilename = 'mp_cl_finalise_page_tn_v2_vue.js';
 let NS_MODULES = {};
 
 
-define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record', 'N/email', 'N/runtime', 'N/https', 'N/task'],
-    (serverWidget, render, search, file, log, record, email, runtime, https, task) => {
-    NS_MODULES = {serverWidget, render, search, file, log, record, email, runtime, https, task};
+define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/record', 'N/email', 'N/runtime', 'N/https', 'N/task', 'N/format', 'N/url'],
+    (serverWidget, render, search, file, log, record, email, runtime, https, task, format, url) => {
+    NS_MODULES = {serverWidget, render, search, file, log, record, email, runtime, https, task, format, url};
     
     const onRequest = ({request, response}) => {
         if (request.method === "GET") {
@@ -635,7 +635,9 @@ const postOperations = {
             _writeResponseJson(response, `Sales Note saved`);
         } else _writeResponseJson(response, {error: `No Sales Note was submitted`});
     },
-    'handleCallCenterOutcomes' : function (response, {userId, customerId, salesRecordId, salesNote, outcome}) {
+    'handleCallCenterOutcomes' : function (response, {userId, customerId, salesRecordId, salesNote, localUTCOffset, outcome}) {
+        let localTime = _getLocalTimeFromOffset(localUTCOffset);
+
         if (!handleCallCenterOutcomes[outcome])
             _writeResponseJson(response, {error: `Outcome [${outcome}] is not recognised.`});
         else {
@@ -648,12 +650,12 @@ const postOperations = {
             let phoneCallRecord = record.create({ type: record.Type['PHONE_CALL'], isDynamic: true });
             phoneCallRecord.setValue({fieldId: 'assigned', value: customerRecord.getValue({fieldId: 'partner'})});
             phoneCallRecord.setValue({fieldId: 'custevent_organiser', value: userId});
-            phoneCallRecord.setValue({fieldId: 'startdate', value: new Date()});
+            phoneCallRecord.setValue({fieldId: 'startdate', value: localTime});
             phoneCallRecord.setValue({fieldId: 'company', value: customerId});
             phoneCallRecord.setText({fieldId: 'status', text: 'Completed'});
             phoneCallRecord.setValue({fieldId: 'custevent_call_type', value: 2});
 
-            handleCallCenterOutcomes[outcome]({userId, customerRecord, salesRecord, salesCampaignRecord, phoneCallRecord, salesNote});
+            handleCallCenterOutcomes[outcome]({userId, customerRecord, salesRecord, salesCampaignRecord, phoneCallRecord, salesNote, localTime});
 
             customerRecord.save({ignoreMandatoryFields: true});
             phoneCallRecord.save({ignoreMandatoryFields: true});
@@ -753,12 +755,13 @@ const postOperations = {
 
         _writeResponseJson(response, {commRegId, serviceChangeCount});
     },
-    'saveCommencementRegister' : function (response, {userId, customerId, salesRecordId, commRegData, servicesChanged, fileContent, fileName}) {
+    'saveCommencementRegister' : function (response, {userId, customerId, salesRecordId, commRegData, servicesChanged, localUTCOffset, fileContent, fileName}) {
         let {log, file, record, search} = NS_MODULES;
         let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
         let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId});
         let partnerId = parseInt(customerRecord.getValue({fieldId: 'partner'}));
         let partnerRecord = record.load({type: 'partner', id: partnerId});
+        let localTime = _getLocalTimeFromOffset(localUTCOffset);
 
         // Save the uploaded pdf file and get its ID only when fileContent and fileName are present
         if (fileContent && fileName) {
@@ -766,7 +769,7 @@ const postOperations = {
             let fileExtension = fileName.split('.').pop().toLowerCase();
 
             if (fileExtension === 'pdf') {
-                let dateStr = new Date().toLocaleDateString('en-AU');
+                let dateStr = localTime.toLocaleDateString('en-AU');
                 let entityId = customerRecord.getValue({fieldId: 'entityid'});
 
                 formFileId = file.create({
@@ -821,12 +824,12 @@ const postOperations = {
         salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_commreg', value: commRegId});
-        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: new Date()});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: localTime});
         salesRecord.save({ignoreMandatoryFields: true});
 
         // Modify customer record
         customerRecord.setValue({fieldId: 'entitystatus', value: 13});
-        customerRecord.setValue({fieldId: 'custentity_date_prospect_opportunity', value: new Date()});
+        customerRecord.setValue({fieldId: 'custentity_date_prospect_opportunity', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_cust_closed_won', value: true});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge_rate', value: '31.16'});
         customerRecord.setValue({fieldId: 'custentity_sendle_fuel_surcharge', value: '6.95'});
@@ -964,7 +967,7 @@ const sharedFunctions = {
 };
 
 const handleCallCenterOutcomes = {
-    'NO_SALE': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote}) => {
+    'NO_SALE': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
         if (parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'})) !== 65) {
             customerRecord.setValue({fieldId: 'entitystatus', value: 21});
         }
@@ -978,55 +981,150 @@ const handleCallCenterOutcomes = {
 
         salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
-        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: new Date()});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: localTime});
         salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
         salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 10});
         salesRecord.setValue({fieldId: 'custrecord_sales_nosalereason', value: ''});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
-        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: new Date()});
+        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
     },
-    'NO_RESPONSE_EMAIL': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote}) => {
-        let salesCampaignType = parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'}));
-        let today = new Date();
+    'NO_ANSWER_EMAIL': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
+        let {https, record, email, runtime, url} = NS_MODULES;
+        let customerId = customerRecord.getValue({fieldId: 'internalid'});
+        let customerEmail = customerRecord.getValue({fieldId: 'custentity_email_service'});
 
-        if (salesCampaignType === 55)
-            customerRecord.setValue({fieldId: 'entitystatus', value: 20});
-        else if  (salesCampaignType !== 65)
-            customerRecord.setValue({fieldId: 'entitystatus', value: 35});
+        customerRecord.setValue({fieldId: 'entitystatus', value: 59});
+        customerRecord.setValue({fieldId: 'custentity13', value: localTime});
+        customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 41});
 
+        phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 3});
         phoneCallRecord.setValue({
             fieldId: 'title',
-            value: salesCampaignType === 55 ? 'Prospecting Call - GPO - No Answer' : salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Response - Email'
+            value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Answer Email'
         });
+
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
+        salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: localTime});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 10});
+        salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
+        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
+
+        let emailTemplateId = 154;
+        let newLeadEmailTemplateRecord = record.load({type: 'customrecord_camp_comm_template', id: emailTemplateId});
+        let templateSubject = newLeadEmailTemplateRecord.getValue({fieldId: 'custrecord_camp_comm_subject'});
+
+        let httpsGetResult = https.get({url: url.format({
+                domain: 'https://1048144.extforms.netsuite.com/app/site/hosting/scriptlet.nl',
+                params: {
+                    script: 395,
+                    deploy: 1,
+                    compid: 1048144,
+                    h: '6d4293eecb3cb3f4353e',
+                    rectype: 'customer',
+                    template: emailTemplateId,
+                    recid: customerId,
+                    salesrep: null,
+                    dear: null,
+                    contactid: null,
+                    userid: userId,
+                }
+            })});
+        let emailHtml = httpsGetResult.body;
+
+        email.sendBulk({
+            author: userId,
+            body: emailHtml,
+            subject: templateSubject,
+            recipients: [customerEmail],
+            cc: [
+                runtime.getCurrentUser().email,
+            ],
+            relatedRecords: {
+                'entity': customerId
+            },
+            isInternalOnly: true
+        });
+    },
+    'NO_ANSWER_PHONE': ({userId, customerRecord, salesRecord, salesCampaignRecord, phoneCallRecord, salesNote, localTime}) => {
+        if (parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'})) === 55) {
+            customerRecord.setValue({fieldId: 'entitystatus', value: 20});
+            phoneCallRecord.setValue({fieldId: 'title', value: 'Prospecting Call - GPO - No Answer'});
+        } else {
+            if (parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'})) !== 65)
+                customerRecord.setValue({fieldId: 'entitystatus', value: 35});
+
+            phoneCallRecord.setValue({fieldId: 'title', value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Answer - Phone Call'});
+        }
+
+        if (!salesRecord.getValue({fieldId: 'custrecord_sales_day0call'}))
+            salesRecord.setValue({fieldId: 'custrecord_sales_day0call', value: localTime});
+        else if (!salesRecord.getValue({fieldId: 'custrecord_sales_day14call'}))
+            salesRecord.setValue({fieldId: 'custrecord_sales_day14call', value: localTime});
+        else if (!salesRecord.getValue({fieldId: 'custrecord_sales_day25call'}))
+            salesRecord.setValue({fieldId: 'custrecord_sales_day25call', value: localTime});
+
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
         phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6});
 
-        if (!salesRecord.getValue({fieldId: 'custrecord_sales_day0call'}))
-            salesRecord.setValue({fieldId: 'custrecord_sales_day0call', value: today});
-        else if (!salesRecord.getValue({fieldId: 'custrecord_sales_day14call'}))
-            salesRecord.setValue({fieldId: 'custrecord_sales_day14call', value: today});
-        else if (!salesRecord.getValue({fieldId: 'custrecord_sales_day25call'}))
-            salesRecord.setValue({fieldId: 'custrecord_sales_day25call', value: today});
-
         let fiveDaysFromNow = new Date();
-        fiveDaysFromNow.setDate(today.getDate() + 5);
-        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: false});
+        fiveDaysFromNow.setDate(localTime.getDate() + 5);
+        fiveDaysFromNow.setHours(10, 0, 0); // 5 days from now, at 10 am
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
-        salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
         salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 7});
+        salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: fiveDaysFromNow});
-        salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: '10:00 AM'});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: fiveDaysFromNow});
         salesRecord.setValue({
             fieldId: 'custrecord_sales_attempt',
             value: parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_attempt'})) + 1
         });
     },
-    'NOT_ESTABLISHED': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote}) => {
-        let today = new Date();
+    'NO_RESPONSE_EMAIL': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
+        let salesCampaignType = parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'}));
+        let salesCampaignId = parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'}));
 
+        if (salesCampaignId === 55) {
+            customerRecord.setValue({fieldId: 'entitystatus', value: 20});
+        } else if (salesCampaignType !== 65)
+            customerRecord.setValue({fieldId: 'entitystatus', value: 35});
+
+        phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6});
+        phoneCallRecord.setValue({
+            fieldId: 'title',
+            value: salesCampaignId === 55 ? 'Prospecting Call - GPO - No Answer' : salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Response - Email'
+        });
+
+        if (!salesRecord.getValue({fieldId: 'custrecord_sales_day0call'}))
+            salesRecord.setValue({fieldId: 'custrecord_sales_day0call', value: localTime});
+        else if (!salesRecord.getValue({fieldId: 'custrecord_sales_day14call'}))
+            salesRecord.setValue({fieldId: 'custrecord_sales_day14call', value: localTime});
+        else if (!salesRecord.getValue({fieldId: 'custrecord_sales_day25call'}))
+            salesRecord.setValue({fieldId: 'custrecord_sales_day25call', value: localTime});
+
+        let fiveDaysFromNow = new Date();
+        fiveDaysFromNow.setDate(localTime.getDate() + 5);
+        fiveDaysFromNow.setHours(10, 0, 0); // 5 days from now, at 10 am
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 7});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: fiveDaysFromNow});
+        salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: fiveDaysFromNow});
+        salesRecord.setValue({
+            fieldId: 'custrecord_sales_attempt',
+            value: parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_attempt'})) + 1
+        });
+    },
+    'NOT_ESTABLISHED': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
         customerRecord.setValue({fieldId: 'entitystatus', value: 59});
-        customerRecord.setValue({fieldId: 'custentity13', value: today});
+        customerRecord.setValue({fieldId: 'custentity13', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 55});
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
@@ -1038,16 +1136,14 @@ const handleCallCenterOutcomes = {
 
         salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
-        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: today});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: localTime});
         salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
         salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 10});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
-        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: today});
+        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
     },
-    'FOLLOW_UP': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote}) => {
-        let today = new Date();
-
+    'FOLLOW_UP': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
         customerRecord.setValue({fieldId: 'entitystatus', value: 18});
         customerRecord.setValue({fieldId: 'salesrep', value: userId});
 
@@ -1064,7 +1160,7 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 21});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
-        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: today});
+        salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
     },
 };
 
@@ -1351,4 +1447,14 @@ function _prepareScheduledScriptParams(customerId, commRegId) {
 function _parseIsoDatetime(dateString) {
     let dt = dateString.split(/[: T-]/).map(parseFloat);
     return new Date(dt[0], dt[1] - 1, dt[2], dt[3] || 0, dt[4] || 0, dt[5] || 0, 0);
+}
+
+function _getLocalTimeFromOffset(localUTCOffset) {
+    let today = new Date();
+    let serverUTCOffset = today.getTimezoneOffset();
+
+    let localTime = new Date();
+    localTime.setTime(today.getTime() + (serverUTCOffset - parseInt(localUTCOffset)) * 60 * 1000);
+
+    return localTime;
 }
