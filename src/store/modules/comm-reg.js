@@ -75,6 +75,9 @@ const actions = {
         context.state.disabled = false;
     },
     save : async context => {
+        if (!context.rootGetters['customerId'] || !context.rootGetters['salesRecordId'] || context.rootGetters['callCenterMode'])
+            return;
+
         context.state.busy = true;
         context.state.disabled = true;
         context.commit('displayBusyGlobalModal',
@@ -89,18 +92,22 @@ const actions = {
             context.state.form.custrecord_finalised_by = context.rootGetters['userId'];
             context.state.form.custrecord_finalised_on = new Date();
 
+            let serviceChanges = context.rootGetters['service-changes/all'];
             let fileName = context.state.formFile.file?.name;
             let fileContent = await _readFile(context.state.formFile.file);
+
             await http.post('saveCommencementRegister', {
                 userId: context.rootGetters['userId'],
                 customerId: context.rootGetters['customerId'],
                 salesRecordId: context.rootGetters['salesRecordId'],
                 commRegData: context.state.form,
+                servicesChanged: serviceChanges.length > 0,
                 fileContent,
                 fileName,
             });
 
-            context.dispatch('goToNetSuiteCustomerPage', null, {root: true}).then();
+            if (serviceChanges.length <= 0) context.dispatch('service-changes/goToServiceChangePage', null, {root: true}).then();
+            else context.dispatch('goToNetSuiteCustomerPage', null, {root: true}).then();
         } catch (e) { console.error(e); }
 
         context.state.busy = false;
