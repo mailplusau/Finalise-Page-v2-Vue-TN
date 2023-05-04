@@ -468,6 +468,13 @@ const getOperations = {
 
         _writeResponseJson(response, data);
     },
+    'getFileURLById' : function (response, {fileId}) {
+        let {file} = NS_MODULES;
+
+        let fileObj = file.load({id: fileId});
+
+        _writeResponseJson(response, {fileURL: fileObj.url});
+    },
 }
 
 const postOperations = {
