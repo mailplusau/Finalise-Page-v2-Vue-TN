@@ -27,6 +27,12 @@ const state = {
     servicesOfInterestOptions: [],
     commencementTypeOptions: [],
     inOutOptions: [],
+    accountManagers: [
+        {value: 668711, text: 'Lee Russell'},
+        {value: 696160, text: 'Kerina Helliwell'},
+        {value: 690145, text: 'David Gdanski'},
+        {value: 668712, text: 'Belinda Urbani'},
+    ],
 };
 
 const getters = {
@@ -42,6 +48,7 @@ const getters = {
     servicesOfInterestOptions : state => state.servicesOfInterestOptions,
     commencementTypeOptions : state => state.commencementTypeOptions,
     inOutOptions : state => state.inOutOptions,
+    accountManagers : state => state.accountManagers,
 };
 
 const mutations = {};

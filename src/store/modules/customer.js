@@ -148,7 +148,13 @@ let actions = {
 };
 
 actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
-    return !context.state.busy && !context.state.detailFormDisabled ? ['Customer\'s Details'] : '';
+    let unsavedChanges = [];
+
+    if (!context.state.busy && !context.state.detailFormDisabled) unsavedChanges.push('Customer\'s Details');
+
+    if (!context.state.detailForm.custentity_mp_toll_salesrep) unsavedChanges.push('Customer\'s Details: [Account Manager] field is required');
+
+    return unsavedChanges;
 }
 
 function _updateFormTitleAndHeader(context) {

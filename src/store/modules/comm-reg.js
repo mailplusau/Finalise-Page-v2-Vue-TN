@@ -47,6 +47,7 @@ const mutations = {
         state.form.custrecord_date_entry = _parseDateStringIntoObject(state.form.custrecord_date_entry);
         state.form.custrecord_comm_date = _parseDateStringIntoObject(state.form.custrecord_comm_date);
         state.form.custrecord_comm_date_signup = _parseDateStringIntoObject(state.form.custrecord_comm_date_signup);
+        state.form.custrecord_finalised_on = state.form.custrecord_finalised_on ? _parseDateStringIntoObject(state.form.custrecord_comm_date_signup) : '';
     },
 };
 
@@ -96,9 +97,9 @@ const actions = {
             context.state.form.custrecord_franchisee = context.state.form.custrecord_franchisee || context.rootGetters['customer/details'].partner;
             context.state.form.custrecord_commreg_sales_record = context.state.form.custrecord_commreg_sales_record || context.rootGetters['salesRecordId'];
             context.state.form.custrecord_trial_status = context.state.form.custrecord_trial_status || 9;
-            context.state.form.custrecord_state = context.rootGetters['addresses/defaultShippingStateId'];
-            context.state.form.custrecord_finalised_by = context.rootGetters['userId'];
-            context.state.form.custrecord_finalised_on = new Date();
+            context.state.form.custrecord_state = context.state.form.custrecord_state || context.rootGetters['addresses/defaultShippingStateId'];
+            context.state.form.custrecord_finalised_by = context.state.form.custrecord_finalised_by || context.rootGetters['userId'];
+            context.state.form.custrecord_finalised_on = context.state.form.custrecord_finalised_on || new Date();
 
             let serviceChanges = context.rootGetters['service-changes/all'];
             let fileName = context.state.formFile.file?.name;

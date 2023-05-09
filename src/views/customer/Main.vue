@@ -91,7 +91,6 @@
                     </b-form-invalid-feedback>
                 </b-input-group>
             </div>
-
             <div class="col-6 mb-4">
                 <b-input-group prepend="Industry">
                     <b-form-select v-model="detailForm.custentity_industry_category" v-validate="'required'" data-vv-name="industry"
@@ -105,6 +104,15 @@
                     <b-form-input v-model="detailTexts.entitystatus" disabled></b-form-input>
                 </b-input-group>
             </div>
+            <div class="col-12 mb-4">
+                <b-input-group prepend="Account Manager">
+                    <b-form-select v-model="detailForm.custentity_mp_toll_salesrep" v-validate="hasInternalId ? 'required' : ''" data-vv-name="account_manager"
+                                   :options="$store.getters['misc/accountManagers']" :disabled="formDisabled"></b-form-select>
+
+                    <b-form-invalid-feedback :state="!errors.has('account_manager')">{{ errors.first('account_manager') }}</b-form-invalid-feedback>
+                </b-input-group>
+            </div>
+
             <div class="col-12" v-if="hasInternalId">
                 <b-button @click="editForm" v-if="formDisabled" size="sm" :disabled="busy" variant="outline-primary">Edit Customer's Details</b-button>
                 <template v-else>
