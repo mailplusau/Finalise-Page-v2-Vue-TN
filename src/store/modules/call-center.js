@@ -28,8 +28,7 @@ const actions = {
             {title: 'Processing...', message: 'Processing outcome [No Answer - Phone Call]. Please Wait...', open: true}, {root: true});
 
         if (await _sendCallCenterOutcome(context, 'NO_ANSWER_PHONE'))
-            context.commit('displayInfoGlobalModal',
-                {title: 'Complete', message: 'Customer has been marked as [No Answer - Phone Call].'}, {root: true});
+            context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
     sendEmailSigned : async context => {
         context.commit('displayBusyGlobalModal',
