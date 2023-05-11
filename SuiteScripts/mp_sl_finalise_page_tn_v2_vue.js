@@ -1045,7 +1045,7 @@ const handleCallCenterOutcomes = {
                 runtime.getCurrentUser().email,
             ],
             relatedRecords: {
-                'entity': customerId
+                'entityId': customerId
             },
             isInternalOnly: true
         });
@@ -1282,7 +1282,7 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
                 'fiona.harrison@mailplus.com.au'
             ],
             relatedRecords: {
-                'entity': customerId
+                'entityId': customerId
             },
             isInternalOnly: true
         });
@@ -1298,7 +1298,7 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
             'fiona.harrison@mailplus.com.au'
         ],
         relatedRecords: {
-            'entity': customerId
+            'entityId': customerId
         },
         isInternalOnly: true
     });
