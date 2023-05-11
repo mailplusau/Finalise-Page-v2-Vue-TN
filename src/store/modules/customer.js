@@ -145,6 +145,20 @@ let actions = {
         context.commit('setBusy', false);
         context.commit('displayBusyGlobalModal', {open: false}, {root: true});
     },
+    changeStatus : async (context, statusId) => {
+        try {
+            let data = await http.post('saveCustomerDetails', {
+                customerId: context.rootGetters['customerId'],
+                customerData: {entitystatus: statusId},
+                fieldIds: ['entitystatus'],
+            });
+
+            context.state.details['entitystatus'] = data['entitystatus'];
+            context.state.texts['entitystatus'] = data['entitystatus_text'];
+
+            context.commit('resetDetailForm');
+        } catch (e) { console.error(e); }
+    }
 };
 
 actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
