@@ -116,6 +116,8 @@ const actions = {
                 fileName,
             });
 
+            context.state.data.internalid = commRegId;
+
             if (serviceChanges.length <= 0) context.dispatch('service-changes/goToServiceChangePage', null, {root: true}).then();
             else context.dispatch('goToNetSuiteCustomerPage', null, {root: true}).then();
         } catch (e) { console.error(e); }
