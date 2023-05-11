@@ -949,7 +949,7 @@ const sharedFunctions = {
                 serviceId: result.getValue({name: 'custrecord_servicechg_service'}),
                 serviceText: result.getText({name: 'custrecord_servicechg_service'}),
                 serviceDescription: result.getValue({name: 'custrecord_service_description', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
-                serviceTypeID: result.getValue({name: 'custrecord_service', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
+                serviceTypeId: result.getValue({name: 'custrecord_service', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
                 oldServicePrice: result.getValue({name: 'custrecord_service_price', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
                 nsItem: result.getValue({name: 'custrecord_service_ns_item', join: 'CUSTRECORD_SERVICECHG_SERVICE'}),
                 newServiceChangePrice: result.getValue({name: 'custrecord_servicechg_new_price'}),
