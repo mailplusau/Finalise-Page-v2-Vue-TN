@@ -111,10 +111,10 @@ const actions = {
 
         await _createSalesNote(context);
 
-        let upload_url = baseURL + '/app/common/entity/custjob.nl?id=' + parseInt(context.rootGetters['customerId']);
+        // Change customer status to SUSPECT-Off Peak Pipeline
+        await context.dispatch('customer/changeStatus', 62, {root: true});
 
-        window.open(upload_url, "_self",
-            "height=750,width=650,modal=yes,alwaysRaised=yes");
+        context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
     followUp : async context => {
         context.commit('displayBusyGlobalModal',
