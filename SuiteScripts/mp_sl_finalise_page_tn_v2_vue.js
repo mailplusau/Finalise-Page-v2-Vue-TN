@@ -762,6 +762,7 @@ const postOperations = {
         let partnerId = parseInt(customerRecord.getValue({fieldId: 'partner'}));
         let partnerRecord = record.load({type: 'partner', id: partnerId});
         let localTime = _getLocalTimeFromOffset(localUTCOffset);
+        let salesRepId = salesRecord.getValue({fieldId: 'custrecord_sales_assigned'}) || userId;
 
         // Save the uploaded pdf file and get its ID only when fileContent and fileName are present
         if (fileContent && fileName) {
@@ -788,10 +789,11 @@ const postOperations = {
             record.load({type: 'customrecord_commencement_register', id: commRegData.internalid}) :
             record.create({type: 'customrecord_commencement_register'});
 
-        commRegData['custrecord_date_entry'] = _parseIsoDatetime(commRegData['custrecord_date_entry']);
-        commRegData['custrecord_comm_date'] = _parseIsoDatetime(commRegData['custrecord_comm_date']);
-        commRegData['custrecord_comm_date_signup'] = _parseIsoDatetime(commRegData['custrecord_comm_date_signup']);
-        commRegData['custrecord_finalised_on'] = _parseIsoDatetime(commRegData['custrecord_finalised_on']);
+        commRegData['custrecord_date_entry'] = _parseISODate(commRegData['custrecord_date_entry']);
+        commRegData['custrecord_comm_date'] = _parseISODate(commRegData['custrecord_comm_date']);
+        commRegData['custrecord_comm_date_signup'] = _parseISODate(commRegData['custrecord_comm_date_signup']);
+        commRegData['custrecord_finalised_on'] = _parseISODate(commRegData['custrecord_finalised_on']);
+        commRegData['custrecord_salesrep'] = salesRepId;
 
         for (let fieldId in commRegData)
             commRegRecord.setValue({fieldId, value: commRegData[fieldId]});
@@ -1447,6 +1449,11 @@ function _prepareScheduledScriptParams(customerId, commRegId) {
 function _parseIsoDatetime(dateString) {
     let dt = dateString.split(/[: T-]/).map(parseFloat);
     return new Date(dt[0], dt[1] - 1, dt[2], dt[3] || 0, dt[4] || 0, dt[5] || 0, 0);
+}
+
+function _parseISODate(dateString) {
+    let dt = dateString.split(/[: T-]/).map(parseFloat);
+    return new Date(dt[0], dt[1] - 1, dt[2]);
 }
 
 function _getLocalTimeFromOffset(localUTCOffset) {

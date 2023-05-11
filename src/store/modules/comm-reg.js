@@ -93,19 +93,13 @@ const actions = {
             {title: 'Processing...', message: 'Saving Commencement Register. Please Wait...', open: true}, {root: true});
 
         try {
-            context.state.form.custrecord_customer = context.state.form.custrecord_customer || context.rootGetters['customerId'];
-            context.state.form.custrecord_franchisee = context.state.form.custrecord_franchisee || context.rootGetters['customer/details'].partner;
-            context.state.form.custrecord_commreg_sales_record = context.state.form.custrecord_commreg_sales_record || context.rootGetters['salesRecordId'];
-            context.state.form.custrecord_trial_status = context.state.form.custrecord_trial_status || 9;
-            context.state.form.custrecord_state = context.state.form.custrecord_state || context.rootGetters['addresses/defaultShippingStateId'];
-            context.state.form.custrecord_finalised_by = context.state.form.custrecord_finalised_by || context.rootGetters['userId'];
-            context.state.form.custrecord_finalised_on = context.state.form.custrecord_finalised_on || new Date();
+            _prepareDataForSubmission(context);
 
             let serviceChanges = context.rootGetters['service-changes/all'];
             let fileName = context.state.formFile.file?.name;
             let fileContent = await _readFile(context.state.formFile.file);
 
-            await http.post('saveCommencementRegister', {
+            let { commRegId } = await http.post('saveCommencementRegister', {
                 userId: context.rootGetters['userId'],
                 customerId: context.rootGetters['customerId'],
                 salesRecordId: context.rootGetters['salesRecordId'],
@@ -164,6 +158,29 @@ function _parseDateStringIntoObject(dateString) {
     // If dateString is not a string then we return itself without any modification
     return Object.prototype.toString.call(dateString) === '[object String]' ?
         new Date(dateString.split('/').reverse().join('-')) : dateString;
+}
+
+function _prepareDataForSubmission(context) {
+    let todayDate = new Date();
+    todayDate.setHours(10, 0, 0);
+
+    context.state.form.custrecord_customer = context.state.form.custrecord_customer || context.rootGetters['customerId'];
+    context.state.form.custrecord_franchisee = context.state.form.custrecord_franchisee || context.rootGetters['customer/details'].partner;
+    context.state.form.custrecord_commreg_sales_record = context.state.form.custrecord_commreg_sales_record || context.rootGetters['salesRecordId'];
+    context.state.form.custrecord_trial_status = context.state.form.custrecord_trial_status || 9;
+    context.state.form.custrecord_state = context.state.form.custrecord_state || context.rootGetters['addresses/defaultShippingStateId'];
+    context.state.form.custrecord_finalised_by = context.state.form.custrecord_finalised_by || context.rootGetters['userId'];
+    context.state.form.custrecord_finalised_on = context.state.form.custrecord_finalised_on || todayDate;
+
+    _setTimeForDateObject(context.state.form.custrecord_comm_date);
+    _setTimeForDateObject(context.state.form.custrecord_comm_date_signup);
+    _setTimeForDateObject(context.state.form.custrecord_date_entry);
+}
+
+function _setTimeForDateObject(dateObj) {
+    if (Object.prototype.toString.call(dateObj) === '[object Date]') dateObj.setHours(10, 0 , 0);
+
+    return dateObj;
 }
 
 export default {
