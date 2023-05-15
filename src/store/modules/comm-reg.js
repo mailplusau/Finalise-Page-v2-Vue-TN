@@ -162,7 +162,7 @@ function _parseDateStringIntoObject(dateString) {
 
 function _prepareDataForSubmission(context) {
     let todayDate = new Date();
-    todayDate.setHours(10, 0, 0);
+    todayDate.setHours(todayDate.getTimezoneOffset()/-60, 0, 0);
 
     context.state.form.custrecord_customer = context.state.form.custrecord_customer || context.rootGetters['customerId'];
     context.state.form.custrecord_franchisee = context.state.form.custrecord_franchisee || context.rootGetters['customer/details'].partner;
@@ -178,7 +178,11 @@ function _prepareDataForSubmission(context) {
 }
 
 function _setTimeForDateObject(dateObj) {
-    if (Object.prototype.toString.call(dateObj) === '[object Date]') dateObj.setHours(10, 0 , 0);
+    let todayDate = new Date();
+
+    // We offset the time by an amount according to the current UTC offset.
+    // For example, if the current UTC offfset is +10 hours then we set the current time to be 10 AM
+    if (Object.prototype.toString.call(dateObj) === '[object Date]') dateObj.setHours(todayDate.getTimezoneOffset()/-60, 0 , 0);
 
     return dateObj;
 }
