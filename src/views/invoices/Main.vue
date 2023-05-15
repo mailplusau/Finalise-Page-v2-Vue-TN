@@ -1,5 +1,5 @@
 <template>
-    <b-card border-variant="primary" bg-variant="transparent">
+    <b-card border-variant="primary" bg-variant="transparent" v-if="showInvoiceSection">
         <div class="row justify-content-center" >
             <div class="col-12">
                 <h1 class="text-center mp-header">Last 3 Invoices</h1>
@@ -40,6 +40,9 @@ export default {
 
     },
     computed: {
+        showInvoiceSection() { // Show this invoice section when customer status is Customer - Signed
+            return parseInt(this.$store.getters['customer/detailForm'].entitystatus) === 13;
+        },
         invoices() {
             return this.$store.getters['invoices/all'].slice(-3);
         },
