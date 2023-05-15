@@ -998,6 +998,7 @@ const handleCallCenterOutcomes = {
 
         customerRecord.setValue({fieldId: 'entitystatus', value: 59});
         customerRecord.setValue({fieldId: 'custentity13', value: localTime});
+        customerRecord.setValue({fieldId: 'custentity_date_lead_lost', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 41});
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
@@ -1076,15 +1077,17 @@ const handleCallCenterOutcomes = {
         let fiveDaysFromNow = new Date();
         fiveDaysFromNow.setDate(localTime.getDate() + 5);
         fiveDaysFromNow.setHours(10, 0, 0); // 5 days from now, at 10 am
-        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_quotesent', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 7});
         salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: fiveDaysFromNow});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: fiveDaysFromNow});
+        let attempts = parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_attempt'}));
         salesRecord.setValue({
             fieldId: 'custrecord_sales_attempt',
-            value: parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_attempt'})) + 1
+            value: isNaN(attempts) ? 1 : attempts + 1
         });
     },
     'NO_RESPONSE_EMAIL': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
@@ -1114,19 +1117,22 @@ const handleCallCenterOutcomes = {
         fiveDaysFromNow.setDate(localTime.getDate() + 5);
         fiveDaysFromNow.setHours(10, 0, 0); // 5 days from now, at 10 am
         salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: false});
+        salesRecord.setValue({fieldId: 'custrecord_sales_quotesent', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
         salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 7});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: fiveDaysFromNow});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: fiveDaysFromNow});
+        let attempts = parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_attempt'}));
         salesRecord.setValue({
             fieldId: 'custrecord_sales_attempt',
-            value: parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_attempt'})) + 1
+            value: isNaN(attempts) ? 1 : attempts + 1
         });
     },
     'NOT_ESTABLISHED': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
         customerRecord.setValue({fieldId: 'entitystatus', value: 59});
         customerRecord.setValue({fieldId: 'custentity13', value: localTime});
+        customerRecord.setValue({fieldId: 'custentity_date_lead_lost', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 55});
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
