@@ -127,15 +127,27 @@ async function _readAndVerifyUrlParams(context) {
             paramCustomerId = weirdParams['custid'] || null;
             paramSalesRecordId = weirdParams['sales_record_id'] || null;
         }
+
+        if (!paramCustomerId || !paramSalesRecordId) {
+            context.commit('displayErrorGlobalModal', {title: 'Missing parameters', message: 'Customer ID and/or Sales Record ID missing.'});
+            return;
+        }
+
         let {customerId, salesRecordId, userId, userRole} = await http.post('verifyParameters', {
-            customerId: paramCustomerId, salesRecordId: paramSalesRecordId
+            customerId: parseInt(paramCustomerId), salesRecordId: parseInt(paramSalesRecordId)
         });
 
         context.state.userId = userId;
         context.state.userRole = userRole;
+        context.state.callCenterMode = (!!params['callcenter'] && params['callcenter'] === 'T');
+
+        if (!context.state.callCenterMode && ![3, 1032].includes(parseInt(context.state.userRole))) {
+            context.commit('displayErrorGlobalModal', {title: 'Access denied', message: 'You have don\'t have the necessary role to access this page.'});
+            return;
+        }
+
         context.state.customerId = customerId;
         context.state.salesRecordId = salesRecordId;
-        context.state.callCenterMode = (!!params['callcenter'] && params['callcenter'] === 'T');
     } catch (e) { console.error(e); }
 }
 
