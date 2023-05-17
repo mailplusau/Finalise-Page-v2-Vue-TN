@@ -1342,11 +1342,11 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
 }
 
 function _prepareScheduledScriptParams(customerId, commRegId) {
-    let {record} = NS_MODULES;
+    let {record, format} = NS_MODULES;
     let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
     let pricing_notes_services = customerRecord.getValue({fieldId: 'custentity_customer_pricing_notes'});
     let initial_size_of_financial = customerRecord.getLineCount({sublistId: 'itempricing'});
-
+    let commRegRecord = record.load({type: 'customrecord_commencement_register', id: commRegId});
 
     let financialTabItemArray = [];
 
@@ -1372,7 +1372,7 @@ function _prepareScheduledScriptParams(customerId, commRegId) {
         let serviceText = nsTypeRec.getValue({fieldId: 'itemid'});
 
         if (index === 0) {
-            pricing_notes_services += '\n' +
+            pricing_notes_services += '\n' + format.format({value: commRegRecord.getValue({fieldId: 'custrecord_comm_date'}), type: format.Type.DATE}) + '\n' +
                 serviceText + ' - @$' + newServiceChangePrice + ' - ' + serviceChangeFreqText + '\n';
         } else {
             pricing_notes_services += '\n' + serviceText + ' - @$' + newServiceChangePrice + ' - ' +
