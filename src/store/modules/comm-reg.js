@@ -156,7 +156,7 @@ function _readFile(fileObject) {
 // Converting it to ISO format (YYYY-MM-DD)
 function _parseDateStringIntoObject(dateString) {
     // If dateString is not a string then we return itself without any modification
-    return Object.prototype.toString.call(dateString) === '[object String]' ?
+    return !!dateString && Object.prototype.toString.call(dateString) === '[object String]' ?
         new Date(dateString.split('/').reverse().join('-')) : dateString;
 }
 

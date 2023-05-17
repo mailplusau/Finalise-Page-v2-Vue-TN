@@ -10,7 +10,7 @@
                     <div class="col-6 mb-4">
                         <b-input-group prepend="Date - Commencement">
                             <b-form-datepicker v-model="form.custrecord_comm_date" v-validate="'required'" data-vv-name="commencement_date" value-as-date
-                                               :class="errors.has('commencement_date') ? 'is-invalid' : ''" :disabled="formDisabled || busy"></b-form-datepicker>
+                                               :class="errors.has('commencement_date') ? 'is-invalid' : ''" :disabled="false"></b-form-datepicker>
 
                             <b-form-invalid-feedback :state="!errors.has('commencement_date')">{{ errors.first('commencement_date') }}</b-form-invalid-feedback>
                         </b-input-group>
@@ -78,7 +78,7 @@
             </b-card>
 
 
-            <b-modal id="modal-contact-deletion" size="lg" centered v-model="modalOpen" hide-footer>
+            <b-modal size="lg" centered v-model="modalOpen" hide-footer>
                 <template v-slot:modal-header>
                     <h5 class="text-center">Preview</h5>
                     <b-button size="sm" @click="modalOpen = false">Close</b-button>
