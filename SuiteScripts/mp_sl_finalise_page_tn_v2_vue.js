@@ -1343,14 +1343,14 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
 
 function _prepareScheduledScriptParams(customerId, commRegId) {
     let {record, format} = NS_MODULES;
-    let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
+    let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId, isDynamic: true});
     let pricing_notes_services = customerRecord.getValue({fieldId: 'custentity_customer_pricing_notes'});
     let initial_size_of_financial = customerRecord.getLineCount({sublistId: 'itempricing'});
     let commRegRecord = record.load({type: 'customrecord_commencement_register', id: commRegId});
 
     let financialTabItemArray = [];
 
-    for (let line = 1; line <= customerRecord.getLineCount({sublistId: 'itempricing'}); line++) {
+    for (let line = 0; line < customerRecord.getLineCount({sublistId: 'itempricing'}); line++) {
         customerRecord.selectLine({sublistId: 'itempricing', line});
         financialTabItemArray[financialTabItemArray.length] = customerRecord.getCurrentSublistValue({
             sublistId: 'itempricing',
