@@ -971,9 +971,8 @@ const sharedFunctions = {
 
 const handleCallCenterOutcomes = {
     'NO_SALE': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
-        if (parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'})) !== 65) {
-            customerRecord.setValue({fieldId: 'entitystatus', value: 21});
-        }
+        if (parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'})) !== 65)
+            _changeCustomerStatusIfNotSigned(customerRecord, 21)
 
         phoneCallRecord.setValue({
             fieldId: 'title',
@@ -997,7 +996,7 @@ const handleCallCenterOutcomes = {
         let customerId = customerRecord.getValue({fieldId: 'internalid'});
         let customerEmail = customerRecord.getValue({fieldId: 'custentity_email_service'});
 
-        customerRecord.setValue({fieldId: 'entitystatus', value: 59});
+        _changeCustomerStatusIfNotSigned(customerRecord, 59)
         customerRecord.setValue({fieldId: 'custentity13', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_date_lead_lost', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 41});
@@ -1056,11 +1055,11 @@ const handleCallCenterOutcomes = {
     },
     'NO_ANSWER_PHONE': ({userId, customerRecord, salesRecord, salesCampaignRecord, phoneCallRecord, salesNote, localTime}) => {
         if (parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'})) === 55) {
-            customerRecord.setValue({fieldId: 'entitystatus', value: 20});
+            _changeCustomerStatusIfNotSigned(customerRecord, 20)
             phoneCallRecord.setValue({fieldId: 'title', value: 'Prospecting Call - GPO - No Answer'});
         } else {
             if (parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'})) !== 65)
-                customerRecord.setValue({fieldId: 'entitystatus', value: 35});
+                _changeCustomerStatusIfNotSigned(customerRecord, 35)
 
             phoneCallRecord.setValue({fieldId: 'title', value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Answer - Phone Call'});
         }
@@ -1096,9 +1095,9 @@ const handleCallCenterOutcomes = {
         let salesCampaignId = parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'}));
 
         if (salesCampaignId === 55) {
-            customerRecord.setValue({fieldId: 'entitystatus', value: 20});
+            _changeCustomerStatusIfNotSigned(customerRecord, 20);
         } else if (salesCampaignType !== 65)
-            customerRecord.setValue({fieldId: 'entitystatus', value: 35});
+            _changeCustomerStatusIfNotSigned(customerRecord, 35);
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
         phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6});
@@ -1131,7 +1130,7 @@ const handleCallCenterOutcomes = {
         });
     },
     'NOT_ESTABLISHED': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
-        customerRecord.setValue({fieldId: 'entitystatus', value: 59});
+        _changeCustomerStatusIfNotSigned(customerRecord, 59);
         customerRecord.setValue({fieldId: 'custentity13', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_date_lead_lost', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 55});
@@ -1153,7 +1152,7 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
     },
     'FOLLOW_UP': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
-        customerRecord.setValue({fieldId: 'entitystatus', value: 18});
+        _changeCustomerStatusIfNotSigned(customerRecord, 18);
         customerRecord.setValue({fieldId: 'salesrep', value: userId});
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
@@ -1451,6 +1450,11 @@ function _prepareScheduledScriptParams(customerId, commRegId) {
         custscriptfinancial_tab_array: financial_tab_item_array.toString(),
         custscriptfinancial_tab_price_array: financial_tab_price_array.toString()
     };
+}
+
+function _changeCustomerStatusIfNotSigned(customerRecord, newStatus) {
+    if (parseInt(customerRecord.getValue({fieldId: 'entitystatus'})) !== 13)
+        customerRecord.setValue({fieldId: 'entitystatus', value: newStatus});
 }
 
 function _parseIsoDatetime(dateString) {
