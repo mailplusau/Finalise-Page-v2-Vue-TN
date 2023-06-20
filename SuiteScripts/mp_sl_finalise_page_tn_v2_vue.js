@@ -750,7 +750,8 @@ const postOperations = {
                 author: 668712,
                 subject: 'Cancel Customer - ' + entityId + ' ' + companyName,
                 body: emailBody,
-                recipients: ['tim.nguyen@mailplus.com.au']
+                recipients: ['popie.popie@mailplus.com.au', 'fiona.harrison@mailplus.com.au'],
+                cc: ['ankith.ravindran@mailplus.com.au', 'tim.nguyen@mailplus.com.au'],
             });
 
         _writeResponseJson(response, {commRegId, serviceChangeCount});
@@ -1040,7 +1041,7 @@ const handleCallCenterOutcomes = {
         let emailHtml = httpsGetResult.body;
 
         email.sendBulk({
-            author: userId,
+            author: runtime.getCurrentUser().role === 1032 ? 112209 : userId,
             body: emailHtml,
             subject: templateSubject,
             recipients: [customerEmail],
@@ -1216,7 +1217,7 @@ function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipp
 }
 
 function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegId) {
-    let {https, email, record, task} = NS_MODULES;
+    let {https, email, record, task, runtime} = NS_MODULES;
     let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
     let entityId = customerRecord.getValue({fieldId: 'entityid'});
     let companyName = customerRecord.getValue({fieldId: 'companyname'});
@@ -1281,7 +1282,7 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
         taskRecord.save({ignoreMandatoryFields: true});
 
         email.sendBulk({
-            author: userId,
+            author: runtime.getCurrentUser().role === 1032 ? 112209 : userId,
             body: email_body,
             subject: 'New Customer Finalised - Portal Access Required',
             recipients: ['laura.busse@mailplus.com.au'],
@@ -1297,7 +1298,7 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
     }
 
     email.sendBulk({
-        author: userId,
+        author: runtime.getCurrentUser().role === 1032 ? 112209 : userId,
         body: email_body,
         subject: email_subject,
         recipients: ['popie.popie@mailplus.com.au'],
