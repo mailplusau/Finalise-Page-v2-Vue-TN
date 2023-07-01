@@ -834,14 +834,14 @@ const postOperations = {
         customerRecord.setValue({fieldId: 'entitystatus', value: 13});
         customerRecord.setValue({fieldId: 'custentity_date_prospect_opportunity', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_cust_closed_won', value: true});
-        customerRecord.setValue({fieldId: 'custentity_mpex_surcharge_rate', value: '31.16'});
+        customerRecord.setValue({fieldId: 'custentity_mpex_surcharge_rate', value: '13.85'}); // TOLL surcharge rate
         customerRecord.setValue({fieldId: 'custentity_sendle_fuel_surcharge', value: '6.95'});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge', value: 1});
         if (parseInt(partnerRecord.getValue({fieldId: 'custentity_service_fuel_surcharge_apply'})) === 1) {
             customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge', value: 1});
             customerRecord.setValue({
-                fieldId: 'custentity_service_fuel_surcharge_percen',
-                value: (partnerId === 218 || partnerId === 469) ? '5.3' : '9.5'
+                fieldId: 'custentity_service_fuel_surcharge_percen', // Service Fuel Surcharge
+                value: (partnerId === 218 || partnerId === 469) ? '5.3' : '12.4'
             });
         }
         customerRecord.save({ignoreMandatoryFields: true});
