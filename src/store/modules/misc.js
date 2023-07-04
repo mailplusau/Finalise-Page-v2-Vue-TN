@@ -30,7 +30,7 @@ const state = {
     accountManagers: [
         {value: 668711, text: 'Lee Russell'},
         {value: 696160, text: 'Kerina Helliwell'},
-        {value: 690145, text: 'David Gdanski'},
+        // {value: 690145, text: 'David Gdanski'},
         {value: 668712, text: 'Belinda Urbani'},
     ],
 };

@@ -78,7 +78,7 @@ export default {
     methods: {
         goToProductPricing() {
             let url = window['nlapiResolveURL']('SUITELET', 'customscript_sl2_prod_pricing_page', 'customdeploy1');
-            url += '&customerid=' + parseInt(this.$store.getters['customer/internalId']);
+            url += '&customerid=' + parseInt(this.$store.getters['customerId']);
 
             window.open(url, "_self",
                 "height=750,width=650,modal=yes,alwaysRaised=yes");
