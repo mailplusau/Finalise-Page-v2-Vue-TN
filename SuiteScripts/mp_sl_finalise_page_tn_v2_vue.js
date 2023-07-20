@@ -1372,11 +1372,11 @@ function _prepareScheduledScriptParams(customerId, commRegId) {
         let serviceText = nsTypeRec.getValue({fieldId: 'itemid'});
 
         if (index === 0) {
-            pricing_notes_services += '\n' + format.format({value: commRegRecord.getValue({fieldId: 'custrecord_comm_date'}), type: format.Type.DATE}) + '\n' +
-                serviceText + ' - @$' + newServiceChangePrice + ' - ' + serviceChangeFreqText + '\n';
+            pricing_notes_services += '\n\n' + format.format({value: commRegRecord.getValue({fieldId: 'custrecord_comm_date'}), type: format.Type.DATE}) + '\n' +
+                serviceText + ' - @$' + newServiceChangePrice + ' - ' + _formatServiceChangeFreqText(serviceChangeFreqText) + '\n';
         } else {
-            pricing_notes_services += '\n' + serviceText + ' - @$' + newServiceChangePrice + ' - ' +
-                serviceChangeFreqText + '\n';
+            pricing_notes_services += '\n\n' + serviceText + ' - @$' + newServiceChangePrice + ' - ' +
+                _formatServiceChangeFreqText(serviceChangeFreqText) + '\n';
         }
 
 
@@ -1450,6 +1450,15 @@ function _prepareScheduledScriptParams(customerId, commRegId) {
         custscriptfinancial_tab_array: financial_tab_item_array.toString(),
         custscriptfinancial_tab_price_array: financial_tab_price_array.toString()
     };
+}
+
+function _formatServiceChangeFreqText(text) {
+    let arr = text.split(',');
+    let orderArray = ['Adhoc', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    arr.sort((a, b) => (orderArray.indexOf(a) - orderArray.indexOf(b)));
+    let freqText = arr.join(',');
+
+    return freqText === ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].join(',') ? 'Daily' : freqText;
 }
 
 function _changeCustomerStatusIfNotSigned(customerRecord, newStatus) {
