@@ -1373,14 +1373,11 @@ function _prepareScheduledScriptParams(customerId, commRegId) {
         let nsTypeRec = record.load({type: 'serviceitem', id: nsItem});
         let serviceText = nsTypeRec.getValue({fieldId: 'itemid'});
 
-        if (index === 0) {
-            pricing_notes_services += '\n\n' + format.format({value: commRegRecord.getValue({fieldId: 'custrecord_comm_date'}), type: format.Type.DATE}) + '\n' +
-                serviceText + ' - @$' + newServiceChangePrice + ' - ' + _formatServiceChangeFreqText(serviceChangeFreqText) + '\n';
-        } else {
-            pricing_notes_services += '\n\n' + serviceText + ' - @$' + newServiceChangePrice + ' - ' +
-                _formatServiceChangeFreqText(serviceChangeFreqText) + '\n';
-        }
+        if (index === 0)
+            pricing_notes_services += '\n\n' + format.format({value: commRegRecord.getValue({fieldId: 'custrecord_comm_date'}), type: format.Type.DATE}) + '\n'
 
+        pricing_notes_services += serviceText + ' - @$' + newServiceChangePrice + ' - ' +
+            _formatServiceChangeFreqText(serviceChangeFreqText) + '\n';
 
         serviceDescription = serviceDescription ? serviceDescription.replace(/\s+/g, '-').toLowerCase() : 0;
 
