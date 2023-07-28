@@ -808,14 +808,14 @@ const postOperations = {
             filters: [
                 {name: 'custrecord_service_customer', join: 'CUSTRECORD_SERVICECHG_SERVICE', operator: search.Operator.IS, values: parseInt(customerId)},
                 {name: 'custrecord_servicechg_comm_reg', operator: search.Operator.IS, values: commRegId},
-                {name: 'custrecord_servicechg_status', operator: search.Operator.NONEOF, values: [2, 3]},
+                {name: 'custrecord_servicechg_status', operator: search.Operator.NONEOF, values: [2, 3]}, // Active or Ceased
             ],
             columns: [{name: 'internalid'}]
         }).run().each(result => {
 
             let serviceChangeRecord = record.load({type: 'customrecord_servicechg', id: result.getValue('internalid')});
 
-            serviceChangeRecord.setValue({fieldId: 'custrecord_servicechg_status', value: 1});
+            serviceChangeRecord.setValue({fieldId: 'custrecord_servicechg_status', value: 1}); // Scheduled
 
             serviceChangeRecord.save({ignoreMandatoryFields: true});
 
@@ -838,7 +838,9 @@ const postOperations = {
         customerRecord.setValue({fieldId: 'custentity_sendle_fuel_surcharge', value: '6.95'});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge', value: 1});
         if (parseInt(partnerRecord.getValue({fieldId: 'custentity_service_fuel_surcharge_apply'})) === 1) {
-            customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge', value: 1});
+            if (![2, 3].includes(parseInt(customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge'}))))
+                customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge', value: 1});
+
             customerRecord.setValue({
                 fieldId: 'custentity_service_fuel_surcharge_percen', // Service Fuel Surcharge
                 value: (partnerId === 218 || partnerId === 469) ? '5.3' : '12.4'
