@@ -36,6 +36,9 @@ const actions = {
 
         await _createSalesNote(context);
 
+        // Change customer status to CUSTOMER-To Be Finalised
+        await context.dispatch('customer/changeStatus', 66, {root: true});
+
         _goToSendEmailModule(context, {closedwon: 'T', savecustomer: 'F'});
     },
     sendEmailQuote : async context => {
