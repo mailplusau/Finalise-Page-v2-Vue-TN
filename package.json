@@ -5,7 +5,7 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "postbuild": "node netsuite.upload.js",
+    "postbuild": "node netsuite.upload.mjs",
     "lint": "vue-cli-service lint"
   },
   "netsuite": {
@@ -35,6 +35,7 @@
     "html-webpack-inline-source-plugin": "1.0.0-beta.2",
     "html-webpack-plugin": "4.0.0-beta.4",
     "oauth-1.0a": "^2.2.6",
+    "parse-imports": "^1.1.2",
     "sass": "^1.59.2",
     "sass-loader": "^10.4.1",
     "superagent": "^5.1.0",

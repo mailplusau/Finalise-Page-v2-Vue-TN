@@ -1,15 +1,27 @@
-const superagent = require('superagent');
-let fs = require('fs');
-const crypto = require('crypto');
-const path = require('path');
-const OAuth = require('oauth-1.0a');
-const compareVersions = require('compare-versions');
-const url = require('url');
-const packageJson = require('./package.json');
+import parseImports from 'parse-imports'
+import superagent from 'superagent';
+import fs from 'fs';
+import crypto from "crypto";
+import path from 'path';
+import OAuth from "oauth-1.0a";
+import compareVersions from "compare-versions";
+import url from "url";
+import {} from 'dotenv/config'
+
+// A roundabout way to use require() so that we can read package.json file
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const packageJson = require("./package.json");
+
+// This is so that we can have __dirname like CommonJS
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const BAD_VERSION_ERROR = {
     shortMsg: "You might need to update the vscodeExtensionRestlet.js RESTlet in NetSuite to the latest version."
 };
-require('dotenv').config();
 
 let config = {
     authentication: process.env.VUE_APP_NS_AUTHENTICATION,
@@ -214,7 +226,71 @@ function hasNetSuiteError(customMsg, err, response) {
     return false;
 }
 
-(() => {
+function injectEnvVariables(fileContent) {
+    for (let prop in process.env) {
+        if (Object.prototype.hasOwnProperty.call(process.env, prop) && prop.indexOf('VUE_APP_') > -1) {
+            fileContent = fileContent.replaceAll(`process.env.${prop}`, `"${process.env[prop]}"`)
+        }
+    }
+
+    return fileContent;
+}
+
+// This can only import statements for objects and arrays. Function imports do not work.
+async function injectImportStatements(fileContent) {
+    let importStatements = [];
+
+    do {
+        importStatements = [...(await parseImports(fileContent))];
+
+        if (!importStatements.length) continue;
+
+        let $import = importStatements.pop();
+        let moduleContents = await import($import.moduleSpecifier.value.replaceAll('@/', './src/'));
+
+        if ($import.importClause.default)
+            fileContent = replaceBetween(fileContent, $import.startIndex, $import.endIndex,
+                `const ${$import.importClause.default} = ${JSON.stringify(moduleContents[$import.importClause.default])}`);
+        else if ($import.importClause.named.length) {
+            let originalImport = fileContent.substring($import.startIndex, $import.endIndex);
+            let replacement = `\r\n// ${originalImport}\r\n`;
+
+            for (let item of $import.importClause.named) {
+                let funcArr = [];
+
+                // First we let stringify() replace the functions with their toString()
+                let content = JSON.stringify(moduleContents[item.specifier] || moduleContents['default'], function(key, value) {
+                    if (typeof value === 'function') {
+                        let txt = value.toString()
+                            .replace(`${key}()`, '()=>') // replace function name with arrow function
+                            .replace(/(\s+)\s+/g, '') // trim all white space characters that aren't alone
+                            .replace(/(\r\n|\r|\n)/g, ''); // trim all new line characters
+                        funcArr.push(txt);
+                        return txt;
+                    }
+                    else return value;
+                });
+
+                // Then we replace the double quotes around the functions to make them usable
+
+                for (let item of funcArr) content = content.replace(`${JSON.stringify(item)}`, item);
+
+                replacement += `const ${item.binding} = ${content}`;
+            }
+
+            fileContent = replaceBetween(fileContent, $import.startIndex, $import.endIndex, replacement);
+        }
+
+    } while (importStatements.length > 0);
+
+    return fileContent;
+}
+
+function replaceBetween(original, start, end, what) {
+    return original.substring(0, start) + what + original.substring(end);
+}
+
+(async () => {
     let filePath;
     if (!process.argv[2]) filePath = path.resolve(__dirname, 'dist/' + packageJson.netsuite.htmlFile);
     else filePath = path.resolve(__dirname, process.argv[2]);
@@ -222,11 +298,16 @@ function hasNetSuiteError(customMsg, err, response) {
     if (fs.existsSync(filePath)) {
         let fileContent = fs.readFileSync(filePath, 'utf8');
 
+        if (process.argv.includes('resolve:env'))
+            fileContent = injectEnvVariables(fileContent);
+
+        if (process.argv.includes('resolve:imports'))
+            fileContent = await injectImportStatements(fileContent);
+
         postFile(filePath, fileContent, function (err, res) {
             console.log('Uploading file ' + filePath + ' to NetSuite cabinet...');
             if (hasNetSuiteError('ERROR uploading file.', err, res)) return;
 
-            // let relativeFileName = getRelativePath(filePath);
             console.info('Upload successful!');
         });
     } else console.log('File does not exist', filePath);
