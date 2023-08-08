@@ -39,12 +39,9 @@ const actions = {
             customdeploy: 'customdeploy_sl_finalise_page_tn_v2_vue'
         }
         params = JSON.stringify(params);
-        let upload_url = baseURL + window['nlapiResolveURL']('SUITELET',
-                'customscript_sl_create_service_change',
-                'customdeploy_sl_create_service_change') + '&custparam_params=' +
-            params;
-        window.open(upload_url, "_self",
-            "height=750,width=650,modal=yes,alwaysRaised=yes");
+        let upload_url = baseURL + window['nlapiResolveURL']('SUITELET', 'customscript_sl_service_change_tn_v2_vue', 'customdeploy_sl_service_change_tn_v2_vue') + '&custparam_params=' + params;
+
+        window.open(upload_url, "_self", "height=750,width=650,modal=yes,alwaysRaised=yes");
     }
 };
 
