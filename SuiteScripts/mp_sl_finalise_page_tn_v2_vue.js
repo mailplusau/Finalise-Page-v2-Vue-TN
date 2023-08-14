@@ -771,7 +771,7 @@ const postOperations = {
         _writeResponseJson(response, {commRegId, serviceChangeCount});
     },
     'saveCommencementRegister' : function (response, {userId, customerId, salesRecordId, commRegData, servicesChanged, proceedWithoutServiceChanges, localUTCOffset, fileContent, fileName}) {
-        let {log, file, record, search, task} = NS_MODULES;
+        let {log, file, record, search} = NS_MODULES;
         let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
         let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId});
         let partnerId = parseInt(customerRecord.getValue({fieldId: 'partner'}));
@@ -866,22 +866,17 @@ const postOperations = {
 
         customerRecord.save({ignoreMandatoryFields: true});
 
-        _checkAndSyncProductPricing(partnerRecord);
-
         log.debug({title: 'saveCommencementRegister', details: `proceedWithoutServiceChanges: ${proceedWithoutServiceChanges} | servicesChanged: ${servicesChanged}`});
         if (proceedWithoutServiceChanges || servicesChanged) {
-            log.debug({title: 'saveCommencementRegister', details: `sending email and running scheduled script`});
+            log.debug({title: 'saveCommencementRegister', details: `sending emails`});
             _sendEmailsAfterSavingCommencementRegister(userId, customerId);
 
             // Schedule Script to create / edit / delete the financial tab items with the new details
-            let params3 = _prepareScheduledScriptParams(customerId, commRegId);
-            let scriptTask = task.create({
-                taskType: task.TaskType['SCHEDULED_SCRIPT'],
-                scriptId: 'customscript_sc_smc_item_pricing_update',
-                deploymentId: 'customdeploy1',
-                params: params3
-            });
-            scriptTask.submit();
+            log.debug({title: 'saveCommencementRegister', details: `running scheduled script`});
+            _syncFinancialTabAndItemPricing(customerId, commRegId);
+
+            log.debug({title: 'saveCommencementRegister', details: `syncing product pricing`});
+            _checkAndSyncProductPricing(partnerRecord);
         }
 
         // End
@@ -1235,7 +1230,7 @@ function _checkAndSyncProductPricing(partnerRecord) {
 
         log.debug({title: '_checkAndSyncProductPricing', details: `expressActive: ${expressActive} | standardActive: ${standardActive}`});
         if (scriptTask) scriptTask.submit();
-    } catch (e) { NS_MODULES.log.debug({title: '_checkAndSyncProductPricing', details: `${e}`}); }
+    } catch (e) { log.debug({title: '_checkAndSyncProductPricing', details: `${e}`}); }
 }
 
 function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipping, currentDefaultBilling, addressSublistForm) {
@@ -1393,8 +1388,8 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId) {
     });
 }
 
-function _prepareScheduledScriptParams(customerId, commRegId) {
-    let {record, format} = NS_MODULES;
+function _syncFinancialTabAndItemPricing(customerId, commRegId) {
+    let {record, format, task, log} = NS_MODULES;
     let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId, isDynamic: true});
     let pricing_notes_services = customerRecord.getValue({fieldId: 'custentity_customer_pricing_notes'});
     let initial_size_of_financial = customerRecord.getLineCount({sublistId: 'itempricing'});
@@ -1492,13 +1487,23 @@ function _prepareScheduledScriptParams(customerId, commRegId) {
         }
     }
 
-    return {
+    let params = {
         custscriptcustomer_id: parseInt(customerId),
         custscriptids: financialTabItemArray.toString(),
         custscriptlinked_service_ids: null,
         custscriptfinancial_tab_array: financial_tab_item_array.toString(),
         custscriptfinancial_tab_price_array: financial_tab_price_array.toString()
     };
+
+    try {
+        let scriptTask = task.create({
+            taskType: task.TaskType['SCHEDULED_SCRIPT'],
+            scriptId: 'customscript_sc_smc_item_pricing_update',
+            deploymentId: 'customdeploy1',
+            params
+        });
+        scriptTask.submit();
+    } catch (e) { log.debug({title: '_syncFinancialTabAndItemPricing', details: `${e}`}); }
 }
 
 function _formatServiceChangeFreqText(text) {
