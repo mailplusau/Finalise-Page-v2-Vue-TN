@@ -31,6 +31,8 @@ const actions = {
             context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
     sendEmailSigned : async context => {
+        if (!_areAddressesGeocoded(context)) return; // check for non-geocoded address, throw error if any
+
         context.commit('displayBusyGlobalModal',
             {title: 'Redirecting...', message: 'Redirecting to Email Module. Please Wait...', open: true}, {root: true});
 
@@ -42,6 +44,8 @@ const actions = {
         _goToSendEmailModule(context, {closedwon: 'T', savecustomer: 'F'});
     },
     sendEmailQuote : async context => {
+        if (!_areAddressesGeocoded(context)) return; // check for non-geocoded address, throw error if any
+
         context.commit('displayBusyGlobalModal',
             {title: 'Redirecting...', message: 'Redirecting to Email Module. Please Wait...', open: true}, {root: true});
 
@@ -194,6 +198,19 @@ async function _sendCallCenterOutcome(context, outcome) {
         console.error(e);
         return false;
     }
+}
+
+function _areAddressesGeocoded(context) {
+    let index = context.rootGetters['addresses/all']
+        .findIndex(item => (!item.custrecord_address_lat || !item.custrecord_address_lon));
+
+    if (index >= 0)
+        context.commit('displayErrorGlobalModal', {
+            title: 'Geocode missing',
+            message: 'One of the addresses is not geocoded. Please geocode the address using the autofill.'
+        });
+
+    return index < 0;
 }
 
 export default {
