@@ -66,14 +66,24 @@
                         </b-input-group>
                     </div>
 
-                    <div class="col-12 mb-4">
-                        <b-button v-if="serviceChanges.length" size="lg" variant="success" @click="save">
+                    <div class="col-12 mb-4" v-if="serviceChanges.length">
+                        <b-button size="lg" variant="success" @click="save">
                             Finalise Customer
                         </b-button>
-                        <b-button v-else size="sm" variant="success" @click="save" :disabled="formDisabled || busy">
-                            Save Commencement Register & Create Service Change <b-icon icon="box-arrow-up-right" scale=".6"></b-icon>
-                        </b-button>
                     </div>
+                    <template v-else>
+                        <div class="col-12 mb-3">
+                            <b-button variant="success" @click="save" :disabled="formDisabled || busy">
+                                Save Commencement Register & Create Service Change <b-icon icon="box-arrow-up-right" scale=".6"></b-icon>
+                            </b-button>
+                        </div>
+                        <div class="col-12 mb-4">
+                            <b-button size="sm" variant="success" @click="saveWithoutServiceChanges"
+                                      :disabled="formDisabled || busy">
+                                Finalise Customer Without Service Change
+                            </b-button>
+                        </div>
+                    </template>
                 </div>
             </b-card>
 
@@ -114,7 +124,15 @@ export default {
             this.$validator.validateAll().then((result) => {
                 if (result) {
                     console.log('Form Submitted!');
-                    this.$store.dispatch('comm-reg/save');
+                    this.$store.dispatch('comm-reg/save', false);
+                } else console.log('Correct them errors!');
+            });
+        },
+        saveWithoutServiceChanges() {
+            this.$validator.validateAll().then((result) => {
+                if (result) {
+                    console.log('Form Submitted!');
+                    this.$store.dispatch('comm-reg/save', true);
                 } else console.log('Correct them errors!');
             });
         }

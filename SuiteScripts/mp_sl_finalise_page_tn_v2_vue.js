@@ -449,15 +449,22 @@ const getOperations = {
         _writeResponseJson(response, data);
     },
     'getCommencementRegister' : function (response, {customerId, salesRecordId, fieldIds}) {
-        let {search} = NS_MODULES;
+        let {record, search} = NS_MODULES;
         let data = [];
+
+        let customerRecord = record.load({type: 'customer', id: customerId});
+        let customerStatus = customerRecord.getValue({fieldId: 'entitystatus'});
 
         search.create({
             type: 'customrecord_commencement_register',
             filters: [
                 {name: 'custrecord_customer', operator: search.Operator.IS, values: parseInt(customerId)},
                 {name: 'custrecord_commreg_sales_record', operator: search.Operator.IS, values: parseInt(salesRecordId)},
-                {name: 'custrecord_trial_status', operator: search.Operator.ANYOF, values: [9, 10]},
+                {
+                    name: 'custrecord_trial_status',
+                    operator: search.Operator.ANYOF, // include Signed (2) only if customer status is To Be Finalised (66)
+                    values: parseInt(customerStatus) === 66 ? [2, 9, 10] : [9, 10]
+                },
             ],
             columns: fieldIds.map(item => ({name: item}))
         }).run().each(result => {
@@ -763,8 +770,8 @@ const postOperations = {
 
         _writeResponseJson(response, {commRegId, serviceChangeCount});
     },
-    'saveCommencementRegister' : function (response, {userId, customerId, salesRecordId, commRegData, servicesChanged, localUTCOffset, fileContent, fileName}) {
-        let {log, file, record, search} = NS_MODULES;
+    'saveCommencementRegister' : function (response, {userId, customerId, salesRecordId, commRegData, servicesChanged, proceedWithoutServiceChanges, localUTCOffset, fileContent, fileName}) {
+        let {log, file, record, search, task} = NS_MODULES;
         let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
         let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId});
         let partnerId = parseInt(customerRecord.getValue({fieldId: 'partner'}));
@@ -839,6 +846,7 @@ const postOperations = {
 
         // Modify customer record
         customerRecord.setValue({fieldId: 'entitystatus', value: 13});
+        customerRecord.setValue({fieldId: 'custentity_mpex_small_satchel', value: 1}); // Activate MP Express Pricing
         customerRecord.setValue({fieldId: 'custentity_date_prospect_opportunity', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_cust_closed_won', value: true});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge_rate', value: defaultValues.expressFuelSurcharge}); // TOLL surcharge rate
@@ -853,10 +861,28 @@ const postOperations = {
                 value: (partnerId === 218 || partnerId === 469) ? '5.3' : defaultValues.serviceFuelSurcharge
             });
         }
+        if (parseInt(partnerRecord.getValue({fieldId: 'custentity_zee_mp_std_activated'})) === 1)
+            customerRecord.setValue({fieldId: 'custentity_mp_std_activate', value: 1}); // Activate MP Standard Pricing
+
         customerRecord.save({ignoreMandatoryFields: true});
 
-        if (servicesChanged)
-            _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegId);
+        _checkAndSyncProductPricing(partnerRecord);
+
+        log.debug({title: 'saveCommencementRegister', details: `proceedWithoutServiceChanges: ${proceedWithoutServiceChanges} | servicesChanged: ${servicesChanged}`});
+        if (proceedWithoutServiceChanges || servicesChanged) {
+            log.debug({title: 'saveCommencementRegister', details: `sending email and running scheduled script`});
+            _sendEmailsAfterSavingCommencementRegister(userId, customerId);
+
+            // Schedule Script to create / edit / delete the financial tab items with the new details
+            let params3 = _prepareScheduledScriptParams(customerId, commRegId);
+            let scriptTask = task.create({
+                taskType: task.TaskType['SCHEDULED_SCRIPT'],
+                scriptId: 'customscript_sc_smc_item_pricing_update',
+                deploymentId: 'customdeploy1',
+                params: params3
+            });
+            scriptTask.submit();
+        }
 
         // End
         _writeResponseJson(response, {commRegId});
@@ -934,8 +960,11 @@ const sharedFunctions = {
         return data;
     },
     getServiceChangeRecords(customerId, commRegId) {
-        let {search} = NS_MODULES;
+        let {record, search} = NS_MODULES;
         let serviceChangeRecords = [];
+
+        let customerRecord = record.load({type: 'customer', id: customerId});
+        let customerStatus = customerRecord.getValue({fieldId: 'entitystatus'});
 
         let searchObj = search.load({id: 'customsearch_salesp_service_chg', type: 'customrecord_servicechg'});
         searchObj.filters.push(search.createFilter({
@@ -950,11 +979,11 @@ const sharedFunctions = {
             operator: 'anyof',
             values: commRegId,
         }));
-        searchObj.filters.push(search.createFilter({
+        searchObj.filters.push(search.createFilter({// if customer is To Be Finalised (66), this should only be 3
             name: 'custrecord_servicechg_status',
             join: null,
             operator: 'noneof',
-            values: [2, 3],
+            values: parseInt(customerStatus) === 66 ? [3] : [2, 3], // Active or Ceased
         }));
         searchObj.run().each(result => {
             serviceChangeRecords.push({
@@ -1181,6 +1210,34 @@ const handleCallCenterOutcomes = {
     },
 };
 
+function _checkAndSyncProductPricing(partnerRecord) {
+    let {task, log} = NS_MODULES;
+    let expressActive = partnerRecord.getValue({fieldId: 'custentity_zee_mp_exp_activated'});
+    let standardActive = parseInt(partnerRecord.getValue({fieldId: 'custentity_zee_mp_std_activated'})) === 1;
+    expressActive = !expressActive || parseInt(expressActive) === 1; // empty is also considered yes
+
+    try {
+        let scriptTask;
+
+        if (standardActive && expressActive) {
+            scriptTask = task.create({
+                taskType: task.TaskType['SCHEDULED_SCRIPT'],
+                scriptId: 'customscript_ss_sync_prod_pricing_mappin',
+                deploymentId: 'customdeploy2',
+            });
+        } else if (expressActive) {
+            scriptTask = task.create({
+                taskType: task.TaskType['SCHEDULED_SCRIPT'],
+                scriptId: 'customscript_ss_exp_prod_sync_map',
+                deploymentId: 'customdeploy2',
+            });
+        }
+
+        log.debug({title: '_checkAndSyncProductPricing', details: `expressActive: ${expressActive} | standardActive: ${standardActive}`});
+        if (scriptTask) scriptTask.submit();
+    } catch (e) { NS_MODULES.log.debug({title: '_checkAndSyncProductPricing', details: `${e}`}); }
+}
+
 function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipping, currentDefaultBilling, addressSublistForm) {
     let {record} = NS_MODULES;
     let addressToUpdate, fieldIdToUpdate;
@@ -1224,8 +1281,8 @@ function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipp
     customerRecord.save({ignoreMandatoryFields: true});
 }
 
-function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegId) {
-    let {https, email, record, task, runtime} = NS_MODULES;
+function _sendEmailsAfterSavingCommencementRegister(userId, customerId) {
+    let {https, email, record, runtime} = NS_MODULES;
     let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
     let entityId = customerRecord.getValue({fieldId: 'entityid'});
     let companyName = customerRecord.getValue({fieldId: 'companyname'});
@@ -1334,20 +1391,6 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId, commRegI
         body: customerJSON,
         headers
     });
-
-    /**
-     * Description - Schedule Script to create / edit / delete the financial tab items with the new details
-     */
-    let params3 = _prepareScheduledScriptParams(customerId, commRegId);
-    let scriptTask = task.create({
-        taskType: task.TaskType['SCHEDULED_SCRIPT'],
-        scriptId: 'customscript_sc_smc_item_pricing_update',
-        deploymentId: 'customdeploy1',
-        params: params3
-    });
-    let scriptTaskId = scriptTask.submit();
-    let status = task.checkStatus(scriptTaskId);
-    return status === 'QUEUED';
 }
 
 function _prepareScheduledScriptParams(customerId, commRegId) {

@@ -81,7 +81,7 @@ const actions = {
             context.state.disabled = false;
         } catch (e) { console.error(e); }
     },
-    save : async context => {
+    save : async (context, proceedWithoutServiceChanges = false) => {
         if (!context.rootGetters['customerId'] || !context.rootGetters['salesRecordId'] || context.rootGetters['callCenterMode'])
             return;
 
@@ -105,6 +105,7 @@ const actions = {
                 salesRecordId: context.rootGetters['salesRecordId'],
                 commRegData: context.state.form,
                 servicesChanged: serviceChanges.length > 0,
+                proceedWithoutServiceChanges,
                 localUTCOffset: new Date().getTimezoneOffset(),
                 fileContent,
                 fileName,
@@ -112,7 +113,8 @@ const actions = {
 
             context.state.data.internalid = commRegId;
 
-            if (serviceChanges.length <= 0) context.dispatch('service-changes/goToServiceChangePage', null, {root: true}).then();
+            if (serviceChanges.length <= 0 && !proceedWithoutServiceChanges)
+                context.dispatch('service-changes/goToServiceChangePage', null, {root: true}).then();
             else context.dispatch('goToNetSuiteCustomerPage', null, {root: true}).then();
         } catch (e) { console.error(e); }
 
