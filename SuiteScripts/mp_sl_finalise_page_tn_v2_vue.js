@@ -845,7 +845,6 @@ const postOperations = {
         salesRecord.save({ignoreMandatoryFields: true});
 
         // Modify customer record
-        customerRecord.setValue({fieldId: 'entitystatus', value: 13});
         customerRecord.setValue({fieldId: 'custentity_mpex_small_satchel', value: 1}); // Activate MP Express Pricing
         customerRecord.setValue({fieldId: 'custentity_date_prospect_opportunity', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_cust_closed_won', value: true});
@@ -868,6 +867,18 @@ const postOperations = {
 
         log.debug({title: 'saveCommencementRegister', details: `proceedWithoutServiceChanges: ${proceedWithoutServiceChanges} | servicesChanged: ${servicesChanged}`});
         if (proceedWithoutServiceChanges || servicesChanged) {
+            let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
+
+            // Send this only if customer status going from To be finalised (66) to Signed (13)
+            if (parseInt(customerRecord.getValue({fieldId: 'entitystatus'})) === 66) {
+                log.debug({title: 'saveCommencementRegister', details: `sending email to franchisee`});
+                _sendEmailToFranchisee(customerId, partnerRecord.getValue({fieldId: 'email'}), commRegData['custrecord_comm_date']);
+            }
+
+            // Now that email to franchisee is sent, we set status to Signed (13)
+            customerRecord.setValue({fieldId: 'entitystatus', value: 13});
+            customerRecord.save({ignoreMandatoryFields: true});
+
             log.debug({title: 'saveCommencementRegister', details: `sending emails`});
             _sendEmailsAfterSavingCommencementRegister(userId, customerId);
 
@@ -1386,6 +1397,62 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId) {
         body: customerJSON,
         headers
     });
+}
+
+function _sendEmailToFranchisee(customerId, franchiseeEmail, commencementDate) {
+    let {record, search, email, https, format} = NS_MODULES;
+    let url = 'https://1048144.extforms.netsuite.com/app/site/hosting/scriptlet.nl?script=395&deploy=1&' +
+        'compid=1048144&h=6d4293eecb3cb3f4353e&rectype=customer&template=';
+    let template_id = 150;
+    let newLeadEmailTemplateRecord = record.load({type: 'customrecord_camp_comm_template', id: template_id});
+    let templateSubject = newLeadEmailTemplateRecord.getValue({fieldId: 'custrecord_camp_comm_subject'});
+    let currentUser = NS_MODULES.runtime['getCurrentUser']();
+    let formattedDate = format.format({value: commencementDate, type: format.Type.DATE});
+
+    let searched_contact = search.load({type: 'contact', id: 'customsearch_salesp_contacts'});
+
+    searched_contact.filters.push(search.createFilter({
+        name: 'company',
+        operator: 'is',
+        values: customerId
+    }));
+    searched_contact.filters.push(search.createFilter({
+        name: 'isinactive',
+        operator: 'is',
+        values: false
+    }));
+    searched_contact.filters.push(search.createFilter({
+        name: 'email',
+        operator: 'isnotempty',
+        values: null
+    }));
+
+    let contactResult = searched_contact.run().getRange({start: 0, end: 1});
+
+    let contactID = null;
+
+    if (contactResult.length !== 0) {
+        contactID = contactResult[0].getValue('internalid');
+
+        url += template_id + '&recid=' + customerId + '&salesrep=' +
+            null + '&dear=' + null + '&contactid=' + contactID + '&userid=' +
+            currentUser.id + '&commdate=' + formattedDate;
+
+        let response = https.get({url});
+        let emailHtml = response.body;
+
+        email.send({
+            author: currentUser.id,
+            subject: templateSubject,
+            body: emailHtml,
+            recipients: [franchiseeEmail],
+            cc: [currentUser.email],
+            relatedRecords: {
+                'entityId': customerId
+            },
+            isInternalOnly: true
+        });
+    }
 }
 
 function _syncFinancialTabAndItemPricing(customerId, commRegId) {
