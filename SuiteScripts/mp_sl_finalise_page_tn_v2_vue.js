@@ -845,6 +845,9 @@ const postOperations = {
         salesRecord.save({ignoreMandatoryFields: true});
 
         // Modify customer record
+        customerRecord.setValue({fieldId: 'custentity18', value: true}); // Exclude from batch printing
+        customerRecord.setValue({fieldId: 'custentity_invoice_by_email', value: true}); // Invoice by email
+        customerRecord.setValue({fieldId: 'custentity_invoice_method', value: 2}); // Invoice method: Email (default)
         customerRecord.setValue({fieldId: 'custentity_mpex_small_satchel', value: 1}); // Activate MP Express Pricing
         customerRecord.setValue({fieldId: 'custentity_date_prospect_opportunity', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_cust_closed_won', value: true});
@@ -1593,6 +1596,7 @@ function _parseIsoDatetime(dateString) {
 }
 
 function _parseISODate(dateString) {
+    // TODO: type check maybe?
     let dt = dateString.split(/[: T-]/).map(parseFloat);
     return new Date(dt[0], dt[1] - 1, dt[2]);
 }
