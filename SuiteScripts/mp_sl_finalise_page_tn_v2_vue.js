@@ -854,15 +854,14 @@ const postOperations = {
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge_rate', value: defaultValues.expressFuelSurcharge}); // TOLL surcharge rate
         customerRecord.setValue({fieldId: 'custentity_sendle_fuel_surcharge', value: defaultValues.standardFuelSurcharge});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge', value: 1});
-        if (parseInt(partnerRecord.getValue({fieldId: 'custentity_service_fuel_surcharge_apply'})) === 1) {
-            if (![2, 3].includes(parseInt(customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge'}))))
-                customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge', value: 1});
+        customerRecord.setValue({
+            fieldId: 'custentity_service_fuel_surcharge_percen', // Service Fuel Surcharge
+            value: (partnerId === 218 || partnerId === 469) ? '5.3' : defaultValues.serviceFuelSurcharge
+        });
 
-            customerRecord.setValue({
-                fieldId: 'custentity_service_fuel_surcharge_percen', // Service Fuel Surcharge
-                value: (partnerId === 218 || partnerId === 469) ? '5.3' : defaultValues.serviceFuelSurcharge
-            });
-        }
+        if (![2, 3].includes(parseInt(customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge'}))))
+            customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge', value: 1});
+
         if (parseInt(partnerRecord.getValue({fieldId: 'custentity_zee_mp_std_activated'})) === 1)
             customerRecord.setValue({fieldId: 'custentity_mp_std_activate', value: 1}); // Activate MP Standard Pricing
 
