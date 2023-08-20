@@ -207,8 +207,8 @@ function _areAddressesGeocoded(context) {
     if (index >= 0)
         context.commit('displayErrorGlobalModal', {
             title: 'Geocode missing',
-            message: 'One of the addresses is not geocoded. Please geocode the address using the autofill.'
-        });
+            message: 'One of the addresses is not geocoded. Please geocode the address using the autofill first then try again.'
+        }, {root: true});
 
     return index < 0;
 }
