@@ -1400,15 +1400,16 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId) {
     });
 }
 
-function _sendEmailToFranchisee(customerId, franchiseeEmail, commencementDate) {
+function _sendEmailToFranchisee(customerId, franchiseeId, commencementDate) {
     let {record, search, email, https, format} = NS_MODULES;
     let url = 'https://1048144.extforms.netsuite.com/app/site/hosting/scriptlet.nl?script=395&deploy=1&' +
         'compid=1048144&h=6d4293eecb3cb3f4353e&rectype=customer&template=';
     let template_id = 150;
     let newLeadEmailTemplateRecord = record.load({type: 'customrecord_camp_comm_template', id: template_id});
     let templateSubject = newLeadEmailTemplateRecord.getValue({fieldId: 'custrecord_camp_comm_subject'});
-    let currentUser = NS_MODULES.runtime['getCurrentUser']();
     let formattedDate = format.format({value: commencementDate, type: format.Type.DATE});
+    let partnerRecord = record.load({type: 'partner', id: franchiseeId});
+    let salesRepId = partnerRecord.getValue({fieldId: 'custentity_sales_rep_assigned'});
 
     let searched_contact = search.load({type: 'contact', id: 'customsearch_salesp_contacts'});
 
@@ -1437,17 +1438,17 @@ function _sendEmailToFranchisee(customerId, franchiseeEmail, commencementDate) {
 
         url += template_id + '&recid=' + customerId + '&salesrep=' +
             null + '&dear=' + null + '&contactid=' + contactID + '&userid=' +
-            currentUser.id + '&commdate=' + formattedDate;
+            salesRepId + '&commdate=' + formattedDate;
 
         let response = https.get({url});
         let emailHtml = response.body;
 
         email.send({
-            author: currentUser.id,
+            author: salesRepId, // Associated sales rep
             subject: templateSubject,
             body: emailHtml,
-            recipients: [franchiseeEmail],
-            cc: [currentUser.email],
+            recipients: [partnerRecord.getValue({fieldId: 'email'})], // Associated franchisee
+            cc: [NS_MODULES.runtime['getCurrentUser']().email], // cc current user's email
             relatedRecords: {
                 'entityId': customerId
             },
