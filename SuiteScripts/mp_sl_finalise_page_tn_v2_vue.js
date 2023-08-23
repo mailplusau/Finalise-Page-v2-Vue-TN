@@ -865,28 +865,27 @@ const postOperations = {
         if (parseInt(partnerRecord.getValue({fieldId: 'custentity_zee_mp_std_activated'})) === 1)
             customerRecord.setValue({fieldId: 'custentity_mp_std_activate', value: 1}); // Activate MP Standard Pricing
 
+        // Get the customer's status before we save, will be used to determine if we want to send email to franchisee or not
+        let customerStatus = parseInt(customerRecord.getValue({fieldId: 'entitystatus'}));
         customerRecord.save({ignoreMandatoryFields: true});
 
         log.debug({title: 'saveCommencementRegister', details: `proceedWithoutServiceChanges: ${proceedWithoutServiceChanges} | servicesChanged: ${servicesChanged}`});
         if (proceedWithoutServiceChanges || servicesChanged) {
-            let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
-
             // Send this only if customer status going from To be finalised (66) to Signed (13)
-            if (parseInt(customerRecord.getValue({fieldId: 'entitystatus'})) === 66) {
+            if (customerStatus === 66) {
                 log.debug({title: 'saveCommencementRegister', details: `sending email to franchisee`});
-                _sendEmailToFranchisee(customerId, partnerRecord.getValue({fieldId: 'email'}), commRegData['custrecord_comm_date']);
+                _sendEmailToFranchisee(customerId, partnerId, commRegData['custrecord_comm_date']);
             }
-
-            // Now that email to franchisee is sent, we set status to Signed (13)
-            customerRecord.setValue({fieldId: 'entitystatus', value: 13});
-            customerRecord.save({ignoreMandatoryFields: true});
-
-            log.debug({title: 'saveCommencementRegister', details: `sending emails`});
-            _sendEmailsAfterSavingCommencementRegister(userId, customerId);
 
             // Schedule Script to create / edit / delete the financial tab items with the new details
             log.debug({title: 'saveCommencementRegister', details: `running scheduled script`});
             _syncFinancialTabAndItemPricing(customerId, commRegId);
+
+            // Now that email to franchisee is sent, we set customer's status to Signed (13)
+            record.submitFields({type: 'customer', id: customerId, values: {'entitystatus': 13}});
+
+            log.debug({title: 'saveCommencementRegister', details: `sending emails`});
+            _sendEmailsAfterSavingCommencementRegister(userId, customerId);
 
             log.debug({title: 'saveCommencementRegister', details: `syncing product pricing`});
             _checkAndSyncProductPricing(partnerRecord);
