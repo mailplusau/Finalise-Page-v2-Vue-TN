@@ -667,7 +667,7 @@ const postOperations = {
             phoneCallRecord.setValue({fieldId: 'startdate', value: localTime});
             phoneCallRecord.setValue({fieldId: 'company', value: customerId});
             phoneCallRecord.setText({fieldId: 'status', text: 'Completed'});
-            phoneCallRecord.setValue({fieldId: 'custevent_call_type', value: 2});
+            phoneCallRecord.setValue({fieldId: 'custevent_call_type', value: 2}); // Sales Pitch
 
             handleCallCenterOutcomes[outcome]({userId, customerRecord, salesRecord, salesCampaignRecord, phoneCallRecord, salesNote, localTime});
 
@@ -703,7 +703,7 @@ const postOperations = {
                 filters: [
                     {name: 'custrecord_customer', operator: search.Operator.IS, values: parseInt(customerId)},
                     {name: 'custrecord_commreg_sales_record', operator: search.Operator.IS, values: parseInt(salesRecordId)},
-                    {name: 'custrecord_trial_status', operator: search.Operator.ANYOF, values: [9, 10, 2]},
+                    {name: 'custrecord_trial_status', operator: search.Operator.ANYOF, values: [9, 10, 2]}, // Scheduled, Quote, or Signed
                 ],
                 columns: commRegColumns.map(item => ({name: item}))
             }).run().each(result => {
@@ -728,7 +728,7 @@ const postOperations = {
                 filters: [
                     {name: 'custrecord_service_customer', join: 'CUSTRECORD_SERVICECHG_SERVICE', operator: search.Operator.IS, values: parseInt(customerId)},
                     {name: 'custrecord_servicechg_comm_reg', operator: search.Operator.IS, values: parseInt(commRegId)},
-                    {name: 'custrecord_servicechg_status', operator: search.Operator.ANYOF, values: [1, 2, 4]},
+                    {name: 'custrecord_servicechg_status', operator: search.Operator.ANYOF, values: [1, 2, 4]}, // Scheduled, Active or Quote
                 ],
                 columns: [
                     {name: 'custrecord_servicechg_service'},
@@ -856,7 +856,7 @@ const postOperations = {
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge', value: 1});
         customerRecord.setValue({
             fieldId: 'custentity_service_fuel_surcharge_percen', // Service Fuel Surcharge
-            value: (partnerId === 218 || partnerId === 469) ? '5.3' : defaultValues.serviceFuelSurcharge
+            value: (partnerId === 218 || partnerId === 469) ? '5.3' : defaultValues.serviceFuelSurcharge // customers associated with Blacktown and Surry Hills get special rates
         });
 
         if (![2, 3].includes(parseInt(customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge'}))))
@@ -1041,13 +1041,13 @@ const handleCallCenterOutcomes = {
         let customerId = customerRecord.getValue({fieldId: 'internalid'});
         let customerEmail = customerRecord.getValue({fieldId: 'custentity_email_service'});
 
-        _changeCustomerStatusIfNotSigned(customerRecord, 59)
+        _changeCustomerStatusIfNotSigned(customerRecord, 59); // SUSPECT-Lost
         customerRecord.setValue({fieldId: 'custentity13', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_date_lead_lost', value: localTime});
-        customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 41});
+        customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 41}); // No Response
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
-        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 3});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 3}); // Bad Record
         phoneCallRecord.setValue({
             fieldId: 'title',
             value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Answer Email'
@@ -1056,7 +1056,7 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: localTime});
-        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 10});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 10}); // No Sale
         salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
@@ -1099,12 +1099,12 @@ const handleCallCenterOutcomes = {
         });
     },
     'NO_ANSWER_PHONE': ({userId, customerRecord, salesRecord, salesCampaignRecord, phoneCallRecord, salesNote, localTime}) => {
-        if (parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'})) === 55) {
-            _changeCustomerStatusIfNotSigned(customerRecord, 20)
+        if (parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'})) === 55) { // AusPost GPO List - Cleanse
+            _changeCustomerStatusIfNotSigned(customerRecord, 20); // SUSPECT-No Answer
             phoneCallRecord.setValue({fieldId: 'title', value: 'Prospecting Call - GPO - No Answer'});
         } else {
-            if (parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'})) !== 65)
-                _changeCustomerStatusIfNotSigned(customerRecord, 35)
+            if (parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'})) !== 65) // MPEX Customers
+                _changeCustomerStatusIfNotSigned(customerRecord, 35); // PROSPECT-No Answer
 
             phoneCallRecord.setValue({fieldId: 'title', value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Answer - Phone Call'});
         }
@@ -1117,7 +1117,7 @@ const handleCallCenterOutcomes = {
             salesRecord.setValue({fieldId: 'custrecord_sales_day25call', value: localTime});
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
-        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6}); // No Contact
 
         let fiveDaysFromNow = new Date();
         fiveDaysFromNow.setDate(localTime.getDate() + 5);
@@ -1125,7 +1125,7 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_quotesent', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
-        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 7});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 7}); // No Answer
         salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: fiveDaysFromNow});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: fiveDaysFromNow});
@@ -1139,13 +1139,13 @@ const handleCallCenterOutcomes = {
         let salesCampaignType = parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'}));
         let salesCampaignId = parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'}));
 
-        if (salesCampaignId === 55) {
-            _changeCustomerStatusIfNotSigned(customerRecord, 20);
-        } else if (salesCampaignType !== 65)
-            _changeCustomerStatusIfNotSigned(customerRecord, 35);
+        if (salesCampaignId === 55) { // AusPost GPO List - Cleanse
+            _changeCustomerStatusIfNotSigned(customerRecord, 20); // SUSPECT-No Answer
+        } else if (salesCampaignType !== 65) // MPEX Customers
+            _changeCustomerStatusIfNotSigned(customerRecord, 35); // PROSPECT-No Answer
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
-        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6}); // No Contact
         phoneCallRecord.setValue({
             fieldId: 'title',
             value: salesCampaignId === 55 ? 'Prospecting Call - GPO - No Answer' : salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Response - Email'
@@ -1165,7 +1165,7 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_quotesent', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
-        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 7});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 7}); // No Answer
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: fiveDaysFromNow});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: fiveDaysFromNow});
         let attempts = parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_attempt'}));
@@ -1175,13 +1175,13 @@ const handleCallCenterOutcomes = {
         });
     },
     'NOT_ESTABLISHED': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
-        _changeCustomerStatusIfNotSigned(customerRecord, 59);
+        _changeCustomerStatusIfNotSigned(customerRecord, 59); // SUSPECT-Lost
         customerRecord.setValue({fieldId: 'custentity13', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_date_lead_lost', value: localTime});
-        customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 55});
+        customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 55}); // Not Established Business
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
-        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 3});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 3}); // Bad Record
         phoneCallRecord.setValue({
             fieldId: 'title',
             value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Not Established Business'
@@ -1191,17 +1191,17 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: localTime});
         salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
-        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 10});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 10}); // No Sale
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
         salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
     },
     'FOLLOW_UP': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
-        _changeCustomerStatusIfNotSigned(customerRecord, 18);
+        _changeCustomerStatusIfNotSigned(customerRecord, 18); // SUSPECT-Follow-up
         customerRecord.setValue({fieldId: 'salesrep', value: userId});
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
-        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 25});
+        phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 25}); // Opportunity
         phoneCallRecord.setValue({
             fieldId: 'title',
             value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Prospect Opportunity'
@@ -1210,7 +1210,7 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_inuse', value: false});
         salesRecord.setValue({fieldId: 'custrecord_sales_assigned', value: userId});
-        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 21});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 21}); // Opportunity
         salesRecord.setValue({fieldId: 'custrecord_sales_callbackdate', value: ''});
         salesRecord.setValue({fieldId: 'custrecord_sales_callbacktime', value: ''});
         salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
