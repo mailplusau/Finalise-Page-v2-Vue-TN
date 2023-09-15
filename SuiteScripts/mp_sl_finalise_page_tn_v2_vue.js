@@ -1298,7 +1298,8 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId) {
     let leadSourceId = customerRecord.getValue({fieldId: 'leadsource'});
     let leadSourceText = customerRecord.getText({fieldId: 'leadsource'});
     let dayToDayEmail = customerRecord.getValue({fieldId: 'custentity_email_service'});
-    let customerContacts = sharedFunctions.getCustomerContacts(customerId).filter(item => item.custentity_connect_user);
+    let customerContacts = sharedFunctions.getCustomerContacts(customerId) // Portal User/Admin is set to Yes (1)
+        .filter(item => parseInt(item.custentity_connect_user) === 1 || parseInt(item.custentity_connect_admin) === 1);
 
     let email_subject = '';
     let email_body = ' New Customer NS ID: ' + customerId +
@@ -1313,8 +1314,8 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId) {
         email_subject = 'New Customer Finalised on NetSuite';
     }
 
-    if (customerContacts.length) { // contact with connect_user set to true
-        let contact = customerContacts[0]; // taking only the first contact with connect_user (???)
+    if (customerContacts.length) { // contact with connect_user or connect_admin set to true
+        let contact = customerContacts[0]; // taking only the first contact
         email_body += '</br></br> Customer Portal Access - User Details';
         email_body += '</br>First Name: ' + contact['firstname'];
         email_body += '</br>Last Name: ' + contact['lastname'];
