@@ -5,8 +5,10 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint",
     "postbuild": "node netsuite.upload.mjs",
-    "lint": "vue-cli-service lint"
+    "upload-suitelet": "node netsuite.upload.mjs SuiteScripts\\mp_sl_finalise_page_tn_v2_vue.js resolve:env resolve:imports",
+    "upload-client": "node netsuite.upload.mjs SuiteScripts\\mp_cl_finalise_page_tn_v2_vue.js resolve:env resolve:imports"
   },
   "netsuite": {
     "htmlFile": "mp_cl_finalise_page_tn_v2_vue.html"
