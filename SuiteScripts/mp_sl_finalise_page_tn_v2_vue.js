@@ -771,7 +771,7 @@ const postOperations = {
         _writeResponseJson(response, {commRegId, serviceChangeCount});
     },
     'saveCommencementRegister' : function (response, {userId, customerId, salesRecordId, commRegData, servicesChanged, proceedWithoutServiceChanges, localUTCOffset, fileContent, fileName}) {
-        let {log, file, record, search} = NS_MODULES;
+        let {log, file, record, search, task} = NS_MODULES;
         let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId});
         let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId});
         let partnerId = parseInt(customerRecord.getValue({fieldId: 'partner'}));
@@ -869,27 +869,40 @@ const postOperations = {
         let customerStatus = parseInt(customerRecord.getValue({fieldId: 'entitystatus'}));
         customerRecord.save({ignoreMandatoryFields: true});
 
-        log.debug({title: 'saveCommencementRegister', details: `proceedWithoutServiceChanges: ${proceedWithoutServiceChanges} | servicesChanged: ${servicesChanged}`});
         if (proceedWithoutServiceChanges || servicesChanged) {
+            log.debug({title: 'saveCommencementRegister', details: `Starting final steps....`});
+
             // Send this only if customer status going from To be finalised (66) to Signed (13)
             if (customerStatus === 66) {
                 log.debug({title: 'saveCommencementRegister', details: `sending email to franchisee`});
                 _sendEmailToFranchisee(customerId, partnerId, commRegData['custrecord_comm_date']);
             }
 
-            // Schedule Script to create / edit / delete the financial tab items with the new details
-            log.debug({title: 'saveCommencementRegister', details: `running scheduled script`});
-            _syncFinancialTabAndItemPricing(customerId, commRegId);
-
-            // Now that email to franchisee is sent, we set customer's status to Signed (13)
-            record.submitFields({type: 'customer', id: customerId, values: {'entitystatus': 13}});
-
             log.debug({title: 'saveCommencementRegister', details: `sending emails`});
             _sendEmailsAfterSavingCommencementRegister(userId, customerId);
 
             log.debug({title: 'saveCommencementRegister', details: `syncing product pricing`});
             _checkAndSyncProductPricing(partnerRecord);
-        }
+
+            // Schedule Script to create / edit / delete the financial tab items with the new details
+            // This needs to run before customer's status change to Signed (13)
+            let {params, pricing_notes_services} = _getScheduledScripParamsAndPricingNotes(customerId, commRegId);
+
+            // Now that email to franchisee is sent, we set customer's status to Signed (13)
+            record.submitFields({type: 'customer', id: customerId, values: {'entitystatus': 13}});
+            record.submitFields({type: 'customer', id: customerId, values: {'custentity_customer_pricing_notes': pricing_notes_services}});
+
+            try {
+                log.debug({title: 'saveCommencementRegister', details: `running scheduled script`});
+                let scriptTask = task.create({
+                    taskType: task.TaskType['SCHEDULED_SCRIPT'],
+                    scriptId: 'customscript_sc_smc_item_pricing_update',
+                    deploymentId: 'customdeploy1',
+                    params
+                });
+                scriptTask.submit();
+            } catch (e) { log.debug({title: '_getScheduledScripParamsAndPricingNotes', details: `${e}`}); }
+        } else log.debug({title: 'saveCommencementRegister', details: `Final steps skipped.`});
 
         // End
         _writeResponseJson(response, {commRegId});
@@ -1458,8 +1471,8 @@ function _sendEmailToFranchisee(customerId, franchiseeId, commencementDate) {
     }
 }
 
-function _syncFinancialTabAndItemPricing(customerId, commRegId) {
-    let {record, format, task, log} = NS_MODULES;
+function _getScheduledScripParamsAndPricingNotes(customerId, commRegId) {
+    let {record, format} = NS_MODULES;
     let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId, isDynamic: true});
     let pricing_notes_services = customerRecord.getValue({fieldId: 'custentity_customer_pricing_notes'});
     let initial_size_of_financial = customerRecord.getLineCount({sublistId: 'itempricing'});
@@ -1504,9 +1517,6 @@ function _syncFinancialTabAndItemPricing(customerId, commRegId) {
             item_price_array[serviceTypeId][size] = newServiceChangePrice + '_' + serviceDescription;
         }
     }
-
-    customerRecord.setValue({fieldId: 'custentity_customer_pricing_notes', value: pricing_notes_services});
-    customerRecord.save({ignoreMandatoryFields: true});
 
     for (let serviceChangeRecord of serviceChangeRecords) {
         let {nsItem, serviceTypeId, newServiceChangePrice} = serviceChangeRecord;
@@ -1564,16 +1574,8 @@ function _syncFinancialTabAndItemPricing(customerId, commRegId) {
         custscriptfinancial_tab_array: financial_tab_item_array.toString(),
         custscriptfinancial_tab_price_array: financial_tab_price_array.toString()
     };
-
-    try {
-        let scriptTask = task.create({
-            taskType: task.TaskType['SCHEDULED_SCRIPT'],
-            scriptId: 'customscript_sc_smc_item_pricing_update',
-            deploymentId: 'customdeploy1',
-            params
-        });
-        scriptTask.submit();
-    } catch (e) { log.debug({title: '_syncFinancialTabAndItemPricing', details: `${e}`}); }
+    
+    return {params, pricing_notes_services};
 }
 
 function _formatServiceChangeFreqText(text) {
