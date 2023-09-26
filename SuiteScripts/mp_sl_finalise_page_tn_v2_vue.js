@@ -847,21 +847,27 @@ const postOperations = {
         // Modify customer record
         customerRecord.setValue({fieldId: 'custentity18', value: true}); // Exclude from batch printing
         customerRecord.setValue({fieldId: 'custentity_invoice_by_email', value: true}); // Invoice by email
-        customerRecord.setValue({fieldId: 'custentity_invoice_method', value: 2}); // Invoice method: Email (default)
         customerRecord.setValue({fieldId: 'custentity_mpex_small_satchel', value: 1}); // Activate MP Express Pricing
         customerRecord.setValue({fieldId: 'custentity_date_prospect_opportunity', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_cust_closed_won', value: true});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge_rate', value: defaultValues.expressFuelSurcharge}); // TOLL surcharge rate
         customerRecord.setValue({fieldId: 'custentity_sendle_fuel_surcharge', value: defaultValues.standardFuelSurcharge});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge', value: 1});
-        customerRecord.setValue({
-            fieldId: 'custentity_service_fuel_surcharge_percen', // Service Fuel Surcharge
-            value: (partnerId === 218 || partnerId === 469) ? '5.3' : defaultValues.serviceFuelSurcharge // customers associated with Blacktown and Surry Hills get special rates
-        });
 
-        if (![2, 3].includes(parseInt(customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge'}))))
+        if (!customerRecord.getValue({fieldId: 'custentity_invoice_method'})) // check if invoice method is not set yet
+            customerRecord.setValue({fieldId: 'custentity_invoice_method', value: 2}); // Invoice method: Email (2) (default)
+
+        // check if this customer has service fuel surcharge set to anything other than No (2) and Not Included (3)
+        if (![2, 3].includes(parseInt(customerRecord.getValue({fieldId: 'custentity_service_fuel_surcharge'})))) {
             customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge', value: 1});
+            customerRecord.setValue({
+                fieldId: 'custentity_service_fuel_surcharge_percen', // Service Fuel Surcharge
+                // customers associated with Blacktown and Surry Hills get special rates
+                value: (partnerId === 218 || partnerId === 469) ? '5.3' : defaultValues.serviceFuelSurcharge
+            });
+        } else customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge_percen', value: null});
 
+        // Activate MP Standard based on the associated Franchisee
         if (parseInt(partnerRecord.getValue({fieldId: 'custentity_zee_mp_std_activated'})) === 1)
             customerRecord.setValue({fieldId: 'custentity_mp_std_activate', value: 1}); // Activate MP Standard Pricing
 
