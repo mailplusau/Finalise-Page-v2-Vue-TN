@@ -201,6 +201,14 @@ async function _sendCallCenterOutcome(context, outcome) {
 }
 
 function _areAddressesGeocoded(context) {
+    if (!context.rootGetters['addresses/all'].length) {
+        context.commit('displayErrorGlobalModal', {
+            title: 'Empty Address',
+            message: 'Customer has no address. Please add at least 1 address for this customer.'
+        }, {root: true});
+
+        return false;
+    }
     let index = context.rootGetters['addresses/all']
         .findIndex(item => (!item.custrecord_address_lat || !item.custrecord_address_lon));
 
