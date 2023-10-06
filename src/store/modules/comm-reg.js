@@ -169,7 +169,7 @@ function _prepareDataForSubmission(context) {
     context.state.form.custrecord_customer = context.state.form.custrecord_customer || context.rootGetters['customerId'];
     context.state.form.custrecord_franchisee = context.state.form.custrecord_franchisee || context.rootGetters['customer/details'].partner;
     context.state.form.custrecord_commreg_sales_record = context.state.form.custrecord_commreg_sales_record || context.rootGetters['salesRecordId'];
-    context.state.form.custrecord_trial_status = context.state.form.custrecord_trial_status || 9;
+    context.state.form.custrecord_trial_status = 9; // Set status to Scheduled (9) regardless of what it was previously
     context.state.form.custrecord_state = context.state.form.custrecord_state || context.rootGetters['addresses/defaultShippingStateId'];
     context.state.form.custrecord_finalised_by = context.state.form.custrecord_finalised_by || context.rootGetters['userId'];
     context.state.form.custrecord_finalised_on = context.state.form.custrecord_finalised_on || todayDate;
