@@ -854,7 +854,8 @@ const postOperations = {
         customerRecord.setValue({fieldId: 'custentity_sendle_fuel_surcharge', value: defaultValues.standardFuelSurcharge});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge', value: 1});
 
-        if (!customerRecord.getValue({fieldId: 'custentity_invoice_method'})) // check if invoice method is not set yet
+        // check if invoice method is not set yet or is not previously Signed (13)
+        if (!customerRecord.getValue({fieldId: 'custentity_invoice_method'}) || parseInt(customerRecord.getValue({fieldId: 'entitystatus'})) !== 13)
             customerRecord.setValue({fieldId: 'custentity_invoice_method', value: 2}); // Invoice method: Email (2) (default)
 
         // check if this customer has service fuel surcharge set to anything other than No (2) and Not Included (3)
