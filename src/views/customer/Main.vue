@@ -122,14 +122,18 @@
                 </template>
             </div>
         </div>
+
+        <MandatoryFranchiseeSelectorDialog />
     </b-card>
 </template>
 
 <script>
 import {debounce} from '@/utils/utils';
+import MandatoryFranchiseeSelectorDialog from '@/views/customer/MandatoryFranchiseeSelectorDialog.vue';
 
 export default {
     name: "Main",
+    components: {MandatoryFranchiseeSelectorDialog},
     data: () => ({
         oldCustomerIdFieldDisabled: false,
         showOldCustomerFields: false,
@@ -203,6 +207,22 @@ export default {
                 this.detailForm.custentity_old_zee = '';
             }
         },
+        'detailForm.partner': function (newValue, oldValue) {
+            let oldIndex = this.$store.getters['lpo-info/franchisees']
+                .findIndex(item => parseInt(item.custentity_lpo_linked_franchisees) === parseInt(oldValue));
+
+            let newIndex = this.$store.getters['lpo-info/franchisees']
+                .findIndex(item => parseInt(item.custentity_lpo_linked_franchisees) === parseInt(newValue));
+
+            if (oldIndex >= 0)
+                this.detailForm.companyname = this.detailForm.companyname.replace(/^(LPO - )/gi, '');
+
+            if (newIndex >= 0 && !/^(LPO - )/gi.test(this.detailForm.companyname))
+                this.detailForm.companyname = 'LPO - ' + this.detailForm.companyname;
+
+            if (this.detailForm.companyname !== this.$store.getters['customer/details'].companyname)
+                this.editForm();
+        }
     }
 }
 </script>

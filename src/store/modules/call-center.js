@@ -31,7 +31,7 @@ const actions = {
             context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
     sendEmailSigned : async context => {
-        if (!_areAddressesGeocoded(context)) return; // check for non-geocoded address, throw error if any
+        if (!_areAddressesGeocoded(context) || !_checkEmailsNotEmptyOrDefaulted(context)) return; // check for non-geocoded address, throw error if any
 
         context.commit('displayBusyGlobalModal',
             {title: 'Redirecting...', message: 'Redirecting to Email Module. Please Wait...', open: true}, {root: true});
@@ -44,7 +44,7 @@ const actions = {
         _goToSendEmailModule(context, {closedwon: 'T', savecustomer: 'F'});
     },
     sendEmailQuote : async context => {
-        if (!_areAddressesGeocoded(context)) return; // check for non-geocoded address, throw error if any
+        if (!_areAddressesGeocoded(context) || !_checkEmailsNotEmptyOrDefaulted(context)) return; // check for non-geocoded address, throw error if any
 
         context.commit('displayBusyGlobalModal',
             {title: 'Redirecting...', message: 'Redirecting to Email Module. Please Wait...', open: true}, {root: true});
@@ -219,6 +219,31 @@ function _areAddressesGeocoded(context) {
         }, {root: true});
 
     return index < 0;
+}
+
+function _checkEmailsNotEmptyOrDefaulted(context) {
+    let valuesToCheck = [null, '', 'abc@abc.com'];
+
+    if (valuesToCheck.includes(context.rootGetters['customer/details'].email)
+        || valuesToCheck.includes(context.rootGetters['customer/details'].custentity_email_service)) {
+        context.commit('displayErrorGlobalModal', {
+            title: 'Customer Record has invalid email addresses',
+            message: 'Please check day-to-day email and account email of the customer. Make sure they are valid.'
+        }, {root: true});
+        return false;
+    }
+
+    let index = context.rootGetters['contacts/all'].findIndex(item => valuesToCheck.indexOf(item.email));
+
+    if (index >= 0) {
+        context.commit('displayErrorGlobalModal', {
+            title: 'Contact has invalid email addresses',
+            message: 'Please check the contact\'s email address. Make sure they are valid.'
+        }, {root: true});
+        return false;
+    }
+
+    return true;
 }
 
 export default {

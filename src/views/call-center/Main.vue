@@ -1,6 +1,28 @@
 <template>
     <b-card border-variant="primary" class="my-3" bg-variant="transparent" v-if="$store.getters['callCenterMode']">
-        <div class="row justify-content-center" >
+        <div class="row" v-if="$store.getters['lpo-info/isLPO'] && $store.getters['lpo-info/isLastSalesActivityWithin90Days']">
+            <div class="col-12 mb-4">
+                <h1 class="text-center mp-header">Call Center</h1>
+            </div>
+
+
+            <div class="col-6 mb-3 d-grid" v-if="$store.getters['lpo-info/isLPO']">
+                <b-button variant="info" @click="bauConversionModal = true">
+                    Convert to Business As Usual
+                </b-button>
+            </div>
+            <div class="col-6 mb-3 d-grid" v-else>
+                <b-button variant="info" @click="lpoConversionModal = true">
+                    Convert to LPO Campaign
+                </b-button>
+            </div>
+            <div class="col-6 mb-3 d-grid">
+                <b-button variant="success" @click="open('call-center/followUp', 'Follow-up')">
+                    Follow-up
+                </b-button>
+            </div>
+        </div>
+        <div class="row justify-content-center" v-else>
             <div class="col-12 mb-4">
                 <h1 class="text-center mp-header">Call Center</h1>
             </div>
@@ -91,10 +113,21 @@
                 </b-button>
             </div>
 
+            <div class="col-6 mb-3 d-grid" v-if="$store.getters['lpo-info/isLPO']">
+                <b-button variant="info" @click="bauConversionModal = true">
+                    Convert to Business As Usual
+                </b-button>
+            </div>
+            <div class="col-6 mb-3 d-grid" v-else>
+                <b-button variant="info" @click="lpoConversionModal = true">
+                    Convert to LPO Campaign
+                </b-button>
+            </div>
+
         </div>
 
 
-        <b-modal id="call-center-notice" centered v-model="modalOpen">
+        <b-modal centered v-model="modalOpen">
             <template v-slot:modal-header>
                 <h5 class="text-center">{{title}}</h5>
             </template>
@@ -120,6 +153,44 @@
             </template>
         </b-modal>
 
+
+        <b-modal centered v-model="lpoConversionModal">
+            <template v-slot:modal-header>
+                <h5 class="text-center">Convert to LPO Campaign</h5>
+            </template>
+
+            <b-row class="justify-content-center">
+                <b-col cols="12" class="text-center text-danger">
+                    <b-icon icon="exclamation-triangle"></b-icon>
+                    This option will close the current sales record and create a new one under the LPO campaign. Do you wish to proceed?
+                </b-col>
+            </b-row>
+
+            <template v-slot:modal-footer>
+                <b-button size="sm" @click="lpoConversionModal = false">Cancel</b-button>
+                <b-button variant="danger" size="sm" @click="convertToLPO">Proceed</b-button>
+            </template>
+        </b-modal>
+
+
+        <b-modal centered v-model="bauConversionModal">
+            <template v-slot:modal-header>
+                <h5 class="text-center">Convert to Business As Usual</h5>
+            </template>
+
+            <b-row class="justify-content-center">
+                <b-col cols="12" class="text-center text-danger">
+                    <b-icon icon="exclamation-triangle"></b-icon>
+                    This option will close the current sales record and create a new one under the usual sales workflow. Do you wish to proceed?
+                </b-col>
+            </b-row>
+
+            <template v-slot:modal-footer>
+                <b-button size="sm" @click="bauConversionModal = false">Cancel</b-button>
+                <b-button variant="danger" size="sm" @click="convertToBAU">Proceed</b-button>
+            </template>
+        </b-modal>
+
     </b-card>
 </template>
 
@@ -130,6 +201,8 @@ export default {
         action: null,
         title: '',
         showSalesNote: false,
+        lpoConversionModal: false,
+        bauConversionModal: false,
     }),
     methods: {
         async open(action, title, showSalesNote = true) {
@@ -139,12 +212,21 @@ export default {
             this.title = title;
             this.showSalesNote = showSalesNote;
         },
-        handleModalHide() {
-
-        },
         dispatchAction() {
             if (this.action) this.$store.dispatch(this.action);
             this.action = null;
+        },
+        async convertToLPO() {
+            this.lpoConversionModal = false;
+            if(!await this.$store.dispatch('checkForUnsavedChanges')) return;
+
+            await this.$store.dispatch('lpo-info/convertToLPO');
+        },
+        async convertToBAU() {
+            this.bauConversionModal = false;
+            if(!await this.$store.dispatch('checkForUnsavedChanges')) return;
+
+            await this.$store.dispatch('lpo-info/convertToBAU');
         }
     },
     computed: {

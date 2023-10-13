@@ -33,6 +33,11 @@ const state = {
         // {value: 690145, text: 'David Gdanski'},
         {value: 668712, text: 'Belinda Urbani'},
     ],
+    carrierList: [],
+    lpoAccountStatus: [
+        {value: 1, text: 'Active'},
+        {value: 2, text: 'Inactive'},
+    ]
 };
 
 const getters = {
@@ -42,6 +47,9 @@ const getters = {
     roles : state => state.roles,
     statuses : state => state.statuses,
     states : state => state.states,
+    carrierList : state => state.carrierList,
+    lpoAccountStatus : state => state.lpoAccountStatus,
+
     invoiceCycles : state => state.invoiceCycles,
     yesNoOptions : state => state.yesNoOptions,
     mpExWeeklyUsageOptions : state => state.mpExWeeklyUsageOptions,
@@ -67,6 +75,7 @@ const actions = {
         context.dispatch('getServicesOfInterestOptions').then();
         context.dispatch('getCommencementTypeOptions').then();
         context.dispatch('getInOutOptions').then();
+        context.dispatch('getCarrierList').then();
     },
     getIndustries : async (context) => {
         await _fetchDataForHtmlSelect(context, context.state.industries,
@@ -107,6 +116,10 @@ const actions = {
     getInOutOptions : async context => {
         await _fetchDataForHtmlSelect(context, context.state.inOutOptions,
             null, 'customlist_in_outbound', 'internalId', 'name');
+    },
+    getCarrierList : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.carrierList,
+            null, 'customlist_carrier', 'internalId', 'name');
     },
 };
 

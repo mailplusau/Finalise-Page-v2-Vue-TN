@@ -47,6 +47,16 @@ const state = {
         {value: 690145, text: 'David Gdanski'},
         {value: 668712, text: 'Belinda Urbani'},
     ],
+
+    photos: {
+        data: [],
+        busy: false,
+    },
+    franchiseeSelector: {
+        open: false,
+        required: true,
+        busy: false,
+    }
 };
 
 let getters = {
@@ -57,6 +67,8 @@ let getters = {
     detailFormValid : state => state.detailFormValid,
     detailFormDisabled : state => state.detailFormDisabled,
     accountManagers : state => state.accountManagers,
+    photos : state => state.photos,
+    franchiseeSelector : state => state.franchiseeSelector,
 
     status : state => parseInt(state.details.entitystatus),
     saved : state => parseInt(state.details.custentity_cancel_ongoing),
@@ -69,6 +81,11 @@ const mutations = {
 
     resetDetailForm : state => { state.detailForm = {...state.details}; },
     disableDetailForm : (state, disabled = true) => { state.detailFormDisabled = disabled; },
+
+    updateStatus : (state, {id, text}) => {
+        state.details.entitystatus = id;
+        state.texts.entitystatus = text;
+    }
 }
 
 let actions = {
@@ -76,6 +93,18 @@ let actions = {
         if (!context.rootGetters['customerId']) return;
 
         context.dispatch('getDetails').then();
+        context.dispatch('getPhotos').then();
+    },
+    getPhotos : async context => {
+        context.state.photos.busy = true;
+
+        try {
+            context.state.photos.data = await http.get('getPhotosOfBusiness', {
+                customerId: context.rootGetters['customerId'],
+            });
+        } catch (e) {console.log(e);}
+
+        context.state.photos.busy = false;
     },
     getDetails : async (context) => {
         if (context.rootGetters['customerId']) {
@@ -89,11 +118,19 @@ let actions = {
                 });
 
                 for (let fieldId in context.state.details) {
+                    if (fieldId === 'partner' && parseInt(data[fieldId]) === 435) {
+                        context.state.details[fieldId] = null;
+                        context.state.texts[fieldId] = '';
+                        continue;
+                    }
                     context.state.details[fieldId] = data[fieldId];
                     context.state.texts[fieldId] = data[fieldId + '_text'];
                 }
 
-                _updateFormTitleAndHeader(context)
+                _updateFormTitleAndHeader(context);
+
+                context.state.franchiseeSelector.required = !context.state.details.partner;
+                context.state.franchiseeSelector.open = !context.state.details.partner;
 
                 context.commit('disableDetailForm');
 
@@ -125,12 +162,11 @@ let actions = {
         // Prepare data for submission
         let fieldIds = [];
         for (let fieldId in context.state.details) fieldIds.push(fieldId);
-        context.state.details = {...context.state.detailForm};
 
         try {
             let data = await http.post('saveCustomerDetails', {
                 customerId: context.rootGetters['customerId'],
-                customerData: {...context.state.details},
+                customerData: {...context.state.detailForm},
                 fieldIds,
             });
 
@@ -138,6 +174,9 @@ let actions = {
                 context.state.details[fieldId] = data[fieldId];
                 context.state.texts[fieldId] = data[fieldId + '_text'];
             }
+
+            context.state.franchiseeSelector.required = !context.state.details.partner;
+            context.state.franchiseeSelector.open = !context.state.details.partner;
 
             context.commit('resetDetailForm');
         } catch (e) { console.error(e); }
@@ -164,7 +203,7 @@ let actions = {
 actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
     let unsavedChanges = [];
 
-    if (!context.state.busy && !context.state.detailFormDisabled) unsavedChanges.push('Customer\'s Details');
+    if (!context.state.busy && !context.state.detailFormDisabled) unsavedChanges.push('Customer\'s Details: Please save your changes');
 
     if (!context.state.detailForm.custentity_mp_toll_salesrep) unsavedChanges.push('Customer\'s Details: [Account Manager] field is required');
 

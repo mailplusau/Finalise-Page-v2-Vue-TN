@@ -68,6 +68,7 @@ const actions = {
         await _readAndVerifyUrlParams(context);
 
         context.dispatch('customer/init').then();
+        context.dispatch('lpo-info/init').then();
         context.dispatch('addresses/init').then();
         context.dispatch('contacts/init').then();
         context.dispatch('invoices/init').then();

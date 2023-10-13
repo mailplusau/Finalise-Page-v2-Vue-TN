@@ -2,6 +2,10 @@
     <div id="app" class="container">
         <CustomerDetails />
 
+        <LPOInfo />
+
+        <LPOPhoto />
+
         <div class="row justify-content-center align-items-stretch mt-3">
             <CustomerAddresses />
 
@@ -25,6 +29,8 @@
 <script>
 import GlobalNoticeModal from "@/components/GlobalNoticeModal";
 import CustomerDetails from "@/views/customer/Main";
+import LPOInfo from "@/views/lpo-info/Main";
+import LPOPhoto from "@/views/lpo-info/Photos.vue";
 import CustomerAddresses from "@/views/addresses/Main";
 import CustomerContacts from "@/views/contacts/Main";
 import CustomerInvoices from "@/views/invoices/Main";
@@ -38,6 +44,7 @@ export default {
     components: {
         GlobalNoticeModal,
         CustomerDetails,
+        LPOInfo, LPOPhoto,
         CustomerAddresses,
         CustomerContacts,
         CustomerInvoices,

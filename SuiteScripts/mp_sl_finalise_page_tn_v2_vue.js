@@ -489,6 +489,71 @@ const getOperations = {
 
         _writeResponseJson(response, {fileURL: fileObj.url});
     },
+    'getSalesRecord' : function (response, {salesRecordId, fieldIds}) {
+        let salesRecord = NS_MODULES.record.load({type: 'customrecord_sales', id: salesRecordId});
+        let tmp = {};
+
+        for (let fieldId of fieldIds)
+            tmp[fieldId] = salesRecord.getValue({fieldId});
+
+        _writeResponseJson(response, tmp);
+    },
+    'getFranchiseesOfLPOProject' : function (response) {
+        let data = [];
+        NS_MODULES.search.create({
+            type: "customer",
+            filters:
+                [
+                    ["status","anyof","13"],
+                    "AND",
+                    ["companyname","contains","LPO - Parent"],
+                    "AND",
+                    ["parentcustomer.internalid","anyof","@NONE@"],
+                    "AND",
+                    ["leadsource","anyof","281559"]
+                ],
+            columns: ['internalid', 'entityid', 'companyname', 'custentity_lpo_linked_franchisees']
+        }).run().each(result => {
+            let franchiseeIds = result.getValue('custentity_lpo_linked_franchisees').split(',');
+
+            for (let franchiseeId of franchiseeIds) {
+                let tmp = {};
+
+                for (let column of result.columns)
+                    tmp[column.name] = result.getValue(column.name);
+
+                tmp['custentity_lpo_linked_franchisees'] = franchiseeId;
+
+                data.push(tmp);
+            }
+
+            return true;
+        });
+
+        _writeResponseJson(response, data);
+    },
+    'getPhotosOfBusiness' : function (response, {customerId}) {
+        let data = [];
+
+        NS_MODULES.search.create({
+            type: 'file',
+            filters: [
+                'name', 'contains', customerId,
+                'folder', 'is', 3819984
+            ],
+            columns: ['name', 'url']
+        }).run().each(resultSet => {
+            data.push({
+                name: resultSet.getValue({ name: 'name' }),
+                url: resultSet.getValue({ name: 'url' }),
+                id: resultSet.id
+            });
+
+            return true;
+        });
+
+        _writeResponseJson(response, data);
+    }
 }
 
 const postOperations = {
@@ -507,6 +572,7 @@ const postOperations = {
     },
     'saveCustomerDetails' : function (response, {customerId, customerData, fieldIds}) {
         let {record} = NS_MODULES;
+        let isoStringRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
 
         let customerRecord = record.load({
             type: record.Type.CUSTOMER,
@@ -515,7 +581,7 @@ const postOperations = {
         });
 
         for (let fieldId in customerData)
-            customerRecord.setValue({fieldId, value: customerData[fieldId]});
+            customerRecord.setValue({fieldId, value: isoStringRegex.test(customerData[fieldId]) ? new Date(customerData[fieldId]) : customerData[fieldId]});
 
         customerRecord.save({ignoreMandatoryFields: true});
 
@@ -603,6 +669,8 @@ const postOperations = {
             });
         } else contactRecord = record.create({ type: record.Type.CONTACT });
 
+        contactData['email'] = contactData['email'] || 'abc@abc.com';
+
         for (let fieldId in contactData)
             contactRecord.setValue({fieldId, value: contactData[fieldId]});
 
@@ -677,6 +745,37 @@ const postOperations = {
 
             _writeResponseJson(response, `Call center outcome [${outcome}] has been handled.`);
         }
+    },
+    'convertLeadToLPO' : function (response, {customerId, salesRecordId}) {
+        let salesRecordData = {
+            custrecord_sales_customer: customerId,
+            custrecord_sales_campaign: 69, // LPO (69)
+            custrecord_sales_assigned: NS_MODULES.runtime['getCurrentUser']().id,
+            custrecord_sales_outcome: 20, // Assigned
+            custrecord_sales_callbackdate: new Date(),
+            custrecord_sales_callbacktime: new Date(),
+        }
+
+        sharedFunctions.markSalesRecordAsCompleted(salesRecordId);
+
+        _writeResponseJson(response, sharedFunctions.createSalesRecord(salesRecordData));
+    },
+    'convertLeadToBAU' : function (response, {customerId, salesRecordId}) {
+        let customerRecord = NS_MODULES.record.load({type: 'customer', id: customerId});
+        let leadSource = parseInt(customerRecord.getValue({fieldId: 'leadsource'}));
+        let salesRecordData = {
+            custrecord_sales_customer: customerId,
+            // if lead source is Inbound - Web (99417) then campaign is Digital Lead Campaign (67) otherwise Field Sales (62)
+            custrecord_sales_campaign: leadSource === 99417 ? 69 : 62,
+            custrecord_sales_assigned: NS_MODULES.runtime['getCurrentUser']().id,
+            custrecord_sales_outcome: 20, // Assigned
+            custrecord_sales_callbackdate: new Date(),
+            custrecord_sales_callbacktime: new Date(),
+        }
+
+        sharedFunctions.markSalesRecordAsCompleted(salesRecordId);
+
+        _writeResponseJson(response, sharedFunctions.createSalesRecord(salesRecordData));
     },
     'notifyITTeam' : function (response, {customerId, salesRecordId}) {
         let {record, search, email} = NS_MODULES;
@@ -845,18 +944,11 @@ const postOperations = {
         salesRecord.save({ignoreMandatoryFields: true});
 
         // Modify customer record
-        customerRecord.setValue({fieldId: 'custentity18', value: true}); // Exclude from batch printing
-        customerRecord.setValue({fieldId: 'custentity_invoice_by_email', value: true}); // Invoice by email
-        customerRecord.setValue({fieldId: 'custentity_mpex_small_satchel', value: 1}); // Activate MP Express Pricing
         customerRecord.setValue({fieldId: 'custentity_date_prospect_opportunity', value: localTime});
         customerRecord.setValue({fieldId: 'custentity_cust_closed_won', value: true});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge_rate', value: defaultValues.expressFuelSurcharge}); // TOLL surcharge rate
         customerRecord.setValue({fieldId: 'custentity_sendle_fuel_surcharge', value: defaultValues.standardFuelSurcharge});
         customerRecord.setValue({fieldId: 'custentity_mpex_surcharge', value: 1});
-
-        // check if invoice method is not set yet or is not previously Signed (13)
-        if (!customerRecord.getValue({fieldId: 'custentity_invoice_method'}) || parseInt(customerRecord.getValue({fieldId: 'entitystatus'})) !== 13)
-            customerRecord.setValue({fieldId: 'custentity_invoice_method', value: 2}); // Invoice method: Email (2) (default)
 
         // check if this customer has service fuel surcharge set to anything other than No (2) and Not Included (3)
         if (![2, 3].includes(parseInt(customerRecord.getValue({fieldId: 'custentity_service_fuel_surcharge'})))) {
@@ -1031,6 +1123,22 @@ const sharedFunctions = {
         })
 
         return serviceChangeRecords;
+    },
+
+    markSalesRecordAsCompleted(salesRecordId) {
+        let salesRecord = NS_MODULES.record.load({type: 'customrecord_sales', id: salesRecordId});
+
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
+
+        return salesRecord.save({ignoreMandatoryFields: true});
+    },
+    createSalesRecord(salesRecordData) {
+        let salesRecord = NS_MODULES.record.create({type: 'customrecord_sales'});
+
+        for (let fieldId in salesRecordData)
+            salesRecord.setValue({fieldId, value: salesRecordData[fieldId]});
+
+        return salesRecord.save({ignoreMandatoryFields: true});
     }
 };
 
@@ -1217,7 +1325,10 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
     },
     'FOLLOW_UP': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
-        _changeCustomerStatusIfNotSigned(customerRecord, 18); // SUSPECT-Follow-up
+        if (parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_campaign'})) === 69) // if campaign is LPO (69)
+            _changeCustomerStatusIfNotSigned(customerRecord, 67); // LPO-Follow-up
+        else _changeCustomerStatusIfNotSigned(customerRecord, 18); // SUSPECT-Follow-up
+
         customerRecord.setValue({fieldId: 'salesrep', value: userId});
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});

@@ -31,7 +31,7 @@
                 </div>
                 <div class="col-6 mb-3">
                     <b-input-group prepend="Email">
-                        <b-form-input v-model="contactForm.email" v-validate="'required|email'" data-vv-name="email" @keydown.space.prevent
+                        <b-form-input v-model="contactForm.email" v-validate="'email'" data-vv-name="email" @keydown.space.prevent
                                       :class="errors.has('email') ? 'is-invalid' : ''" :disabled="contactFormBusy"></b-form-input>
 
                         <b-form-invalid-feedback :state="!errors.has('email')">{{ errors.first('email') }}</b-form-invalid-feedback>
