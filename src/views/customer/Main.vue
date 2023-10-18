@@ -53,6 +53,14 @@
                     <b-form-invalid-feedback :state="!errors.has('alt_phone')">{{ errors.first('alt_phone') }}</b-form-invalid-feedback>
                 </b-input-group>
             </div>
+            <div class="col-12 mb-4">
+                <b-input-group prepend="Website">
+                    <b-form-input v-model="detailForm.custentity_website_page_url" v-validate="''" data-vv-name="website"
+                                  :class="errors.has('website') ? 'is-invalid' : ''" :disabled="formDisabled"></b-form-input>
+
+                    <b-form-invalid-feedback :state="!errors.has('website')">{{ errors.first('website') }}</b-form-invalid-feedback>
+                </b-input-group>
+            </div>
             <div class="col-6 mb-4">
                 <b-input-group prepend="Franchisee">
                     <b-form-select v-model="detailForm.partner" v-validate="'required'" data-vv-name="franchisee"
@@ -217,7 +225,7 @@ export default {
             if (oldIndex >= 0)
                 this.detailForm.companyname = this.detailForm.companyname.replace(/^(LPO - )/gi, '');
 
-            if (newIndex >= 0 && !/^(LPO - )/gi.test(this.detailForm.companyname))
+            if (newIndex >= 0 && !/^(LPO - )/gi.test(this.detailForm.companyname) && this.$store.getters['lpo-info/isLPO'])
                 this.detailForm.companyname = 'LPO - ' + this.detailForm.companyname;
 
             if (this.detailForm.companyname !== this.$store.getters['customer/details'].companyname)

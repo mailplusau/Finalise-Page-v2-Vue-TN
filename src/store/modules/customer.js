@@ -13,6 +13,7 @@ const state = {
         entityid: '',
         companyname: '',
         vatregnumber: '',
+        custentity_website_page_url: '', // Website
         email: '',
         altphone: '',
         phone: '',

@@ -233,7 +233,7 @@ function _checkEmailsNotEmptyOrDefaulted(context) {
         return false;
     }
 
-    let index = context.rootGetters['contacts/all'].findIndex(item => valuesToCheck.indexOf(item.email));
+    let index = context.rootGetters['contacts/all'].findIndex(item => valuesToCheck.indexOf(item.email) >= 0);
 
     if (index >= 0) {
         context.commit('displayErrorGlobalModal', {
