@@ -30,6 +30,28 @@ const actions = {
         if (await _sendCallCenterOutcome(context, 'NO_ANSWER_PHONE'))
             context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
+    setCustomerAsFreeTrial : async context => {
+        context.commit('displayBusyGlobalModal',
+            {title: 'Processing...', message: 'Setting Customer as Free Trial. Please Wait...', open: true}, {root: true});
+
+        await _createSalesNote(context);
+
+        // Change customer status to CUSTOMER-Free Trial
+        // await context.dispatch('customer/changeStatus', 32, {root: true}); // REMOVE FOR NOW
+
+        _goToSendEmailModule(context, {freetrial: 'T', savecustomer: 'F'});
+    },
+    approveLPOLead : async context => {
+        context.commit('displayBusyGlobalModal',
+            {title: 'Processing...', message: 'Setting Lead as Qualified. Please Wait...', open: true}, {root: true});
+
+        await _createSalesNote(context);
+
+        // Change customer status to SUSPECT-Qualified
+        await context.dispatch('customer/changeStatus', 42, {root: true});
+
+        window.location.href = baseURL + '/app/common/entity/custjob.nl?id=' + context.rootGetters['customerId'];
+    },
     sendEmailSigned : async context => {
         if (!_areAddressesGeocoded(context) || !_checkEmailsNotEmptyOrDefaulted(context)) return; // check for non-geocoded address, throw error if any
 
@@ -39,7 +61,7 @@ const actions = {
         await _createSalesNote(context);
 
         // Change customer status to CUSTOMER-To Be Finalised
-        await context.dispatch('customer/changeStatus', 66, {root: true});
+        // await context.dispatch('customer/changeStatus', 66, {root: true}); // REMOVE FOR NOW
 
         _goToSendEmailModule(context, {closedwon: 'T', savecustomer: 'F'});
     },
@@ -224,11 +246,10 @@ function _areAddressesGeocoded(context) {
 function _checkEmailsNotEmptyOrDefaulted(context) {
     let valuesToCheck = [null, '', 'abc@abc.com'];
 
-    if (valuesToCheck.includes(context.rootGetters['customer/details'].email)
-        || valuesToCheck.includes(context.rootGetters['customer/details'].custentity_email_service)) {
+    if (valuesToCheck.includes(context.rootGetters['customer/details'].custentity_email_service)) {
         context.commit('displayErrorGlobalModal', {
             title: 'Customer Record has invalid email addresses',
-            message: 'Please check day-to-day email and account email of the customer. Make sure they are valid.'
+            message: 'Please check day-to-day email of the customer. Make sure they are valid.'
         }, {root: true});
         return false;
     }

@@ -988,7 +988,8 @@ const postOperations = {
             let {params, pricing_notes_services} = _getScheduledScripParamsAndPricingNotes(customerId, commRegId);
 
             // Now that email to franchisee is sent, we set customer's status to Signed (13)
-            record.submitFields({type: 'customer', id: customerId, values: {'entitystatus': 13}});
+            if (customerStatus !== 32) // if status is not Customer-free trial
+                record.submitFields({type: 'customer', id: customerId, values: {'entitystatus': 13}});
             record.submitFields({type: 'customer', id: customerId, values: {'custentity_customer_pricing_notes': pricing_notes_services}});
 
             try {

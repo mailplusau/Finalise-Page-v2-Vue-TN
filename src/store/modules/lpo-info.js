@@ -197,8 +197,9 @@ async function _saveCustomerDetails(context) {
 
     let customerData = JSON.parse(JSON.stringify(context.state.form.data));
 
+    // if Account Status is set and lead's status is SUSPECT-New or SUSPECT-Hot lead
     if (customerData['custentity_lpo_account_status'] && [6, 57].includes(parseInt(customerData['entitystatus'])))
-        customerData['entitystatus'] = 42
+        customerData['entitystatus'] = 42; // SUSPECT-Qualified
 
     let data = await http.post('saveCustomerDetails', {
         customerId: context.rootGetters['customerId'],
