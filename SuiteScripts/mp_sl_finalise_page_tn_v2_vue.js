@@ -164,6 +164,20 @@ function _writeResponseJson(response, body) {
 }
 
 const getOperations = {
+    'getCurrentUserDetails' : function (response) {
+        let user = {role: NS_MODULES.runtime['getCurrentUser']().role, id: NS_MODULES.runtime['getCurrentUser']().id};
+        let salesRep = {};
+
+        if (parseInt(user.role) === 1000) {
+            let franchiseeRecord = NS_MODULES.record.load({type: 'partner', id: user.id});
+            let employeeId = franchiseeRecord.getValue({fieldId: 'custentity_sales_rep_assigned'});
+            let employeeRecord = NS_MODULES.record.load({type: 'employee', id: employeeId});
+            salesRep['id'] = employeeId;
+            salesRep['name'] = `${employeeRecord.getValue({fieldId: 'firstname'})} ${employeeRecord.getValue({fieldId: 'lastname'})}`;
+        }
+
+        _writeResponseJson(response, {...user, salesRep});
+    },
     'getCustomerDetails': function (response, {customerId, fieldIds}) {
         if (!customerId) return _writeResponseJson(response, {error: `Invalid Customer ID: ${customerId}`});
         
@@ -1460,7 +1474,7 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId) {
 
         let userJSON = '{';
         userJSON += '"customer_ns_id" : "' + customerId + '",'
-        userJSON += '"first_name" : "' + contact['lastname'] + '",'
+        userJSON += '"first_name" : "' + contact['firstname'] + '",'
         userJSON += '"last_name" : "' + contact['lastname'] + '",'
         userJSON += '"email" : "' + contact['email'] + '",'
         userJSON += '"phone" : "' + contact['phone'] + '"'

@@ -16,7 +16,7 @@ const state = {
 
         entitystatus: null,
 
-        custentity_lpo_account_type: null, // Account Type
+        custentity_previous_carrier: null, // Account Type
         custentity_lpo_account_status: null, // Account Status
         custentity_lpo_date_last_sales_activity: null, // Last sales activity date
         custentity_lpo_notes: '', // Note

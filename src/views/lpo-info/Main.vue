@@ -31,14 +31,14 @@
             </div>
 
             <div class="col-6 mb-4">
-                <b-input-group prepend="Account Type">
+                <b-input-group prepend="Previous Carrier">
                     <b-form-select :options="$store.getters['misc/carrierList']"
-                                   v-model="form.custentity_lpo_account_type"
+                                   v-model="form.custentity_previous_carrier"
                                    :disabled="formDisabled" multiple
-                                   v-validate="''" data-vv-name="account_type"
-                                   :class="errors.has('account_type') ? 'is-invalid' : ''"></b-form-select>
+                                   v-validate="''" data-vv-name="previous_carrier"
+                                   :class="errors.has('previous_carrier') ? 'is-invalid' : ''"></b-form-select>
 
-                    <b-form-invalid-feedback :state="!errors.has('account_type')">{{ errors.first('account_type') }}</b-form-invalid-feedback>
+                    <b-form-invalid-feedback :state="!errors.has('previous_carrier')">{{ errors.first('previous_carrier') }}</b-form-invalid-feedback>
                 </b-input-group>
             </div>
 
