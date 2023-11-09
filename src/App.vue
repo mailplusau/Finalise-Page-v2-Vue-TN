@@ -18,6 +18,8 @@
 
         <ServiceChanges />
 
+        <ActivityNotes />
+
         <CommencementDetails />
 
         <CallCenter />
@@ -38,10 +40,12 @@ import ExtraFeatures from "@/views/extras/Main";
 import CallCenter from "@/views/call-center/Main";
 import CommencementDetails from "@/views/comm-reg/Main";
 import ServiceChanges from "@/views/service-changes/Main";
+import ActivityNotes from '@/views/extras/ActivityNotes.vue';
 
 export default {
     name: 'App',
     components: {
+        ActivityNotes,
         GlobalNoticeModal,
         CustomerDetails,
         LPOInfo, LPOPhoto,

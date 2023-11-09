@@ -165,9 +165,11 @@ let actions = {
         for (let fieldId in context.state.details) fieldIds.push(fieldId);
 
         try {
+            let customerData = JSON.parse(JSON.stringify(context.state.detailForm));
+
             let data = await http.post('saveCustomerDetails', {
                 customerId: context.rootGetters['customerId'],
-                customerData: {...context.state.detailForm},
+                customerData,
                 fieldIds,
             });
 
@@ -198,7 +200,7 @@ let actions = {
 
             context.commit('resetDetailForm');
         } catch (e) { console.error(e); }
-    }
+    },
 };
 
 actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {

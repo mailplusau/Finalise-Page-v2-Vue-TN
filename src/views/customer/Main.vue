@@ -209,28 +209,23 @@ export default {
             // show these fields when lead source is Change of Entity or Relocation
             if (parseInt(newValue) === 202599 || parseInt(newValue) === 217602)
                 this.showOldCustomerFields = true;
-            else { // otherwise hide the fields and reset them
+            // else if lead source is LPO - Transition (281559) and is in LPO mode, we update company name
+            else if (parseInt(newValue) === 281559 && !/^(LPO - )/gi.test(this.detailForm.companyname) && this.$store.getters['lpo-info/isLPO']) {
+                this.detailForm.companyname = 'LPO - ' + this.detailForm.companyname;
+                this.editForm();
+            } else { // otherwise hide the fields and reset them
                 this.showOldCustomerFields = false;
                 this.detailForm.custentity_old_customer = '';
                 this.detailForm.custentity_old_zee = '';
+
+                // We check the old value to make sure this change wasn't cause by the page initialization
+                // we only want to catch changes caused by the user.
+                if (parseInt(newValue) !== 281559 && this.$store.getters['lpo-info/customerInvoiceMethod'] !== 10) {
+                    this.detailForm.companyname = this.detailForm.companyname.replace(/^(LPO - )/gi, '');
+                    if (this.detailForm.companyname !== this.$store.getters['customer/details'].companyname) this.editForm();
+                }
             }
         },
-        'detailForm.partner': function (newValue, oldValue) {
-            let oldIndex = this.$store.getters['lpo-info/franchisees']
-                .findIndex(item => parseInt(item.custentity_lpo_linked_franchisees) === parseInt(oldValue));
-
-            let newIndex = this.$store.getters['lpo-info/franchisees']
-                .findIndex(item => parseInt(item.custentity_lpo_linked_franchisees) === parseInt(newValue));
-
-            if (oldIndex >= 0)
-                this.detailForm.companyname = this.detailForm.companyname.replace(/^(LPO - )/gi, '');
-
-            if (newIndex >= 0 && !/^(LPO - )/gi.test(this.detailForm.companyname) && this.$store.getters['lpo-info/isLPO'])
-                this.detailForm.companyname = 'LPO - ' + this.detailForm.companyname;
-
-            if (this.detailForm.companyname !== this.$store.getters['customer/details'].companyname)
-                this.editForm();
-        }
     }
 }
 </script>

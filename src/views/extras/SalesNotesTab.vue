@@ -22,24 +22,6 @@
                 </template>
             </b-col>
 
-
-
-            <div class="col-12 mb-4">
-                <h2>Activity Notes</h2>
-
-                <b-table :items="salesActivities" :fields="salesActivitiesColumns" head-row-variant="light" striped show-empty>
-                    <template v-slot:empty>
-                        No Sales Activity Recorded
-                    </template>
-
-                    <template v-slot:table-busy>
-                        <div class="text-center text-danger my-2">
-                            <b-spinner class="align-middle mx-2"></b-spinner>
-                            <strong>Loading...</strong>
-                        </div>
-                    </template>
-                </b-table>
-            </div>
         </b-row>
     </b-tab>
 </template>
@@ -47,15 +29,6 @@
 <script>
 export default {
     name: "SalesNotesTab",
-    data: () => ({
-        salesActivitiesColumns: [
-            {key: 'createddate', label: 'Created Date'},
-            {key: 'completeddate', label: 'Completed Date'},
-            {key: 'custevent_organiser_text', label: 'Organiser'},
-            {key: 'title', label: 'Title'},
-            {key: 'message', label: 'Message'},
-        ]
-    }),
     methods: {
         editForm() {
             this.$store.commit('extra-info/disableSalesNotesForm', false);
@@ -81,9 +54,6 @@ export default {
         },
         busy() {
             return this.$store.getters['extra-info/salesNotes'].busy;
-        },
-        salesActivities() {
-            return this.$store.getters['extra-info/salesNotes'].salesActivities;
         },
     }
 }

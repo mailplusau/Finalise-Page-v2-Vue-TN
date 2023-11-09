@@ -8,6 +8,7 @@ const state = {
     },
     customer: {
         parent: null, // Parent Customer
+        companyname: '',
         custentity_invoice_method: null, // Email (2) or LPO (10)
         custentity_invoice_by_email: true, // Invoice By Email
         custentity18: true, // Exclude From Batch Printing
@@ -20,6 +21,11 @@ const state = {
         custentity_lpo_account_status: null, // Account Status
         custentity_lpo_date_last_sales_activity: null, // Last sales activity date
         custentity_lpo_notes: '', // Note
+
+        custentity_mypost_business_number: '', //
+        custentity_lpo_profile_assigned: '', //
+        custentity_lpo_lead_priority: '',
+        custentity_lpo_account_type_linked: '',
     },
     franchisees: [],
 
@@ -31,7 +37,22 @@ const state = {
     invoiceMethodOptions: [
         {value: '2', text: 'Customer'},
         {value: '10', text: 'LPO'},
-    ]
+    ],
+    lpoProfileOptions: [
+        {value: '1', text: 'LPO'},
+        {value: '2', text: 'Corporate'},
+        {value: '3', text: 'Not Linked'},
+    ],
+    lpoAccountTypes: [
+        {value: '1', text: 'MyPost'},
+        {value: '2', text: 'eParcel'},
+        {value: '3', text: 'Charge Account'},
+    ],
+    leadPriorityOptions: [
+        {value: '1', text: 'High'},
+        {value: '2', text: 'Medium'},
+        {value: '3', text: 'Low'},
+    ],
 };
 
 state.form.data = {...state.customer};
@@ -41,6 +62,9 @@ const getters = {
     franchisees : state => state.franchisees,
     invoiceMethodOptions : state => state.invoiceMethodOptions,
     customerInvoiceMethod : state => parseInt(state.customer.custentity_invoice_method),
+    lpoProfileOptions : state => state.lpoProfileOptions,
+    lpoAccountTypes : state => state.lpoAccountTypes,
+    leadPriorityOptions : state => state.leadPriorityOptions,
 
     isLPO : (state, getters, rootState, rootGetters) => {
         let index = state.franchisees
@@ -201,15 +225,22 @@ async function _saveCustomerDetails(context) {
     if (customerData['custentity_lpo_account_status'] && [6, 57].includes(parseInt(customerData['entitystatus'])))
         customerData['entitystatus'] = 42; // SUSPECT-Qualified
 
+    // if LPO pays the invoices and company name does not have prefix yet, we prefix company name with LPO
+    // else if LPO doesn't pay invoices and lead source is not LPO - Transition (281559), we strip the prefix
+    if (parseInt(customerData['custentity_invoice_method']) === 10 && !/^(LPO - )/gi.test(customerData['companyname']))
+        customerData['companyname'] = 'LPO - ' + customerData['companyname'];
+    else if (parseInt(customerData['custentity_invoice_method']) !== 10 && parseInt(context.rootState['customer'].details.leadsource) !== 281559)
+        customerData['companyname'] = customerData['companyname'].replace(/^(LPO - )/gi, '');
+
     let data = await http.post('saveCustomerDetails', {
         customerId: context.rootGetters['customerId'],
         customerData,
         fieldIds,
     });
 
-    context.commit('customer/updateStatus', {id: data['entitystatus'], text:  data['entitystatus_text']}, {root: true})
-
     for (let fieldId in context.state.customer) context.state.customer[fieldId] = data[fieldId];
+
+    await context.dispatch('customer/getDetails', null, {root: true});
 
     context.commit('resetForm');
 }

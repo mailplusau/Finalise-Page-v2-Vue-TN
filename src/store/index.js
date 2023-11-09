@@ -67,6 +67,7 @@ const actions = {
     init : async context => {
         await _readAndVerifyUrlParams(context);
 
+        context.dispatch('user/init').then();
         context.dispatch('customer/init').then();
         context.dispatch('lpo-info/init').then();
         context.dispatch('addresses/init').then();
