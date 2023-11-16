@@ -32,7 +32,7 @@
 
             <div class="col-6 mb-4">
                 <b-input-group prepend="MyPost Business Number">
-                    <b-form-input v-model="form.custentity_mypost_business_number" v-validate="'required'" data-vv-name="mypost_business_number"
+                    <b-form-input v-model="form.custentity_mypost_business_number" v-validate="''" data-vv-name="mypost_business_number"
                                   :class="errors.has('mypost_business_number') ? 'is-invalid' : ''" :disabled="formDisabled"></b-form-input>
 
                     <b-form-invalid-feedback :state="!errors.has('company_name')">{{ errors.first('mypost_business_number') }}</b-form-invalid-feedback>
@@ -44,7 +44,7 @@
                     <b-form-select :options="$store.getters['lpo-info/lpoProfileOptions']"
                                    v-model="form.custentity_lpo_profile_assigned"
                                    :disabled="formDisabled"
-                                   v-validate="'required'" data-vv-name="profile_assigned"
+                                   v-validate="''" data-vv-name="profile_assigned"
                                    :class="errors.has('profile_assigned') ? 'is-invalid' : ''"></b-form-select>
 
                     <b-form-invalid-feedback :state="!errors.has('profile_assigned')">{{ errors.first('profile_assigned') }}</b-form-invalid-feedback>
@@ -56,7 +56,7 @@
                     <b-form-select :options="$store.getters['lpo-info/lpoAccountTypes']"
                                    v-model="form.custentity_lpo_account_type_linked"
                                    :disabled="formDisabled"
-                                   v-validate="'required'" data-vv-name="lpo_account_type"
+                                   v-validate="''" data-vv-name="lpo_account_type"
                                    :class="errors.has('lpo_account_type') ? 'is-invalid' : ''"></b-form-select>
 
                     <b-form-invalid-feedback :state="!errors.has('lpo_account_type')">{{ errors.first('lpo_account_type') }}</b-form-invalid-feedback>
@@ -68,7 +68,7 @@
                     <b-form-select :options="$store.getters['lpo-info/leadPriorityOptions']"
                                    v-model="form.custentity_lpo_lead_priority"
                                    :disabled="formDisabled"
-                                   v-validate="'required'" data-vv-name="lead_priority"
+                                   v-validate="''" data-vv-name="lead_priority"
                                    :class="errors.has('lead_priority') ? 'is-invalid' : ''"></b-form-select>
 
                     <b-form-invalid-feedback :state="!errors.has('lead_priority')">{{ errors.first('lead_priority') }}</b-form-invalid-feedback>
@@ -92,7 +92,7 @@
                     <b-form-select :options="$store.getters['misc/lpoAccountStatus']"
                                    v-model="form.custentity_lpo_account_status"
                                    :disabled="formDisabled"
-                                   v-validate="'required'" data-vv-name="account_status"
+                                   v-validate="''" data-vv-name="account_status"
                                    :class="errors.has('account_status') ? 'is-invalid' : ''"></b-form-select>
 
                     <b-form-invalid-feedback :state="!errors.has('account_status')">{{ errors.first('account_status') }}</b-form-invalid-feedback>

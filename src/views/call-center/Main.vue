@@ -35,7 +35,7 @@
                 <h1 class="text-center mp-header">Call Center</h1>
             </div>
 
-            <div class="col-3">
+            <div :class="$store.getters['user/isMatthew'] ? 'col-4' : 'col-3'">
                 <div class="col-12 mb-3 d-grid">
                     <b-button variant="info" @click="open('call-center/redirectToNetSuiteCustomerPage', 'Return to Customer\'s Page')">
                         <b-icon icon="arrow-left-circle"></b-icon> Customer's Page
@@ -47,13 +47,14 @@
                     </b-button>
                 </div>
                 <div class="col-12 mb-3 d-grid">
-                    <b-button variant="warning" @click="open('call-center/reassignToRep', 'Assign To Rep')">
+                    <b-button :variant="$store.getters['user/isMatthew'] ? 'success' : 'warning'"
+                              @click="open('call-center/reassignToRep', 'Assign To Rep')">
                         Assign To Rep
                     </b-button>
                 </div>
             </div>
 
-            <div class="col-3">
+            <div :class="$store.getters['user/isMatthew'] ? 'col-4' : 'col-3'">
                 <div class="col-12 mb-3 d-grid">
                     <b-button variant="warning" @click="open('call-center/handleNoAnswerOnPhone', 'No Answer - Phone Call')">
                         No Answer - Phone Call
@@ -71,7 +72,7 @@
                 </div>
             </div>
 
-            <div class="col-3">
+            <div class="col-3" v-if="!$store.getters['user/isMatthew']">
                 <template v-if="$store.getters['customer/status'] !== 13">
                     <div class="col-12 mb-3 d-grid" v-if="$store.getters['customer/status'] !== 32">
                         <b-button variant="success" @click="open('call-center/setCustomerAsFreeTrial', 'Free Trial')">
@@ -121,7 +122,7 @@
                 </div>
             </div>
 
-            <div class="col-3">
+            <div :class="$store.getters['user/isMatthew'] ? 'col-4' : 'col-3'">
                 <div class="col-12 mb-3 d-grid">
                     <b-button variant="danger" @click="open('call-center/handleNoAnswerEmail', 'Lost - No Response')">
                         Lost - No Response

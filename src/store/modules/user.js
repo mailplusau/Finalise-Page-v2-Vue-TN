@@ -8,6 +8,8 @@ const state = {
 const getters = {
     role : state => state.role,
     id : state => state.id,
+
+    isMatthew : state => state.id === 1777309,
 };
 
 const mutations = {};
