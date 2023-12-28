@@ -187,6 +187,20 @@ let actions = {
         context.commit('setBusy', false);
         context.commit('displayBusyGlobalModal', {open: false}, {root: true});
     },
+    setAsOutOfTerritory : async context => {
+        context.commit('displayBusyGlobalModal',
+            {title: 'Process', message: 'Setting Customer As [Out of Territory]. Please Wait...', open: true}, {root: true});
+
+        await http.post('setAsOutOfTerritory', {
+            customerId: context.rootGetters['customerId'],
+            salesRecordId: context.rootGetters['salesRecordId'],
+        });
+
+        context.commit('displayBusyGlobalModal',
+            {title: 'Complete', message: 'Customer Is Set As [Out of Territory]. Redirecting To Their Record Page. Please Wait...', open: true}, {root: true});
+
+        await context.dispatch('goToNetSuiteCustomerPage', null, {root: true});
+    },
     changeStatus : async (context, statusId) => {
         try {
             let data = await http.post('saveCustomerDetails', {

@@ -21,6 +21,7 @@
         </b-row>
 
         <template v-slot:modal-footer>
+            <b-button size="sm" @click="outOfTerritory" variant="danger" :disabled="busy" class="mr-5">Out of Territory</b-button>
             <b-button size="sm" @click="saveForm" variant="success" :disabled="busy">Assign</b-button>
         </template>
     </b-modal>
@@ -40,6 +41,11 @@ export default {
                     this.$store.dispatch('customer/saveCustomer');
                 } else console.log('Correct them errors!');
             });
+        },
+        outOfTerritory() {
+            this.$store.dispatch('customer/setAsOutOfTerritory');
+            this.$store.getters['customer/franchiseeSelector'].required = false;
+            this.$store.getters['customer/franchiseeSelector'].open = false;
         }
 
     },

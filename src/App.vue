@@ -203,4 +203,9 @@ ul.pagination.b-pagination, ul.nav.nav-tabs {
     border: 1px solid #ced4da;
     border-radius: 0.25rem;
 }
+
+span.rounded-circle.btn-outline-primary {
+    border-radius: 10%!important;
+    border: 2px dashed #095c7b !important;
+}
 </style>

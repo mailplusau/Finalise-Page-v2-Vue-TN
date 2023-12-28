@@ -584,6 +584,24 @@ const postOperations = {
             });
         else _writeResponseJson(response, {error: `IDs mismatched. Sales record #${salesRecordId} does not belong to customer #${customerId}.`});
     },
+    'setAsOutOfTerritory' : function (response, {customerId, salesRecordId}) {
+        let {record} = NS_MODULES;
+        let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId, isDynamic: true});
+        let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId, isDynamic: true});
+        let today = _getTodayDateObjectForDateField();
+
+        customerRecord.setValue({fieldId: 'entitystatus', value: 64}); // SUSPECT - Out of Territory (64)
+        customerRecord.setValue({fieldId: 'custentity_service_cancellation_reason', value: 39}); // Unserviceable Territory (39)
+        customerRecord.setValue({fieldId: 'custentity_service_cancelled_on', value: today});
+
+        salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
+        salesRecord.setValue({fieldId: 'custrecord_sales_completedate', value: today});
+
+        customerRecord.save({ignoreMandatoryFields: true});
+        salesRecord.save({ignoreMandatoryFields: true});
+
+        _writeResponseJson(response, 'Customer set as [Out of Territory]');
+    },
     'saveCustomerDetails' : function (response, {customerId, customerData, fieldIds}) {
         let {record} = NS_MODULES;
         let isoStringRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
@@ -1744,4 +1762,12 @@ function _getLocalTimeFromOffset(localUTCOffset) {
     localTime.setTime(today.getTime() + (serverUTCOffset - parseInt(localUTCOffset)) * 60 * 1000);
 
     return localTime;
+}
+
+function _getTodayDateObjectForDateField() {
+    let clientOffset = -660; // typical AEST offset
+    let serverOffset = new Date().getTimezoneOffset();
+    let hoursToOffset = (clientOffset - serverOffset) / -60;
+    let date = new Date();
+    return new Date(date.setTime(date.getTime() + (hoursToOffset*60*60*1000)));
 }
