@@ -7,7 +7,7 @@ const state = {
         custrecord_sales_campaign: null,
     },
     customer: {
-        parent: null, // Parent Customer
+        custentity_lpo_parent_account: null, // Parent Customer
         companyname: '',
         custentity_invoice_method: null, // Email (2) or LPO (10)
         custentity_invoice_by_email: true, // Invoice By Email
@@ -172,7 +172,7 @@ actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
             }
     }
 
-    let index = context.getters['parentLpoOptions'].findIndex(item => parseInt(item.value) === parseInt(context.state.customer.parent));
+    let index = context.getters['parentLpoOptions'].findIndex(item => parseInt(item.value) === parseInt(context.state.customer.custentity_lpo_parent_account));
     if (index < 0) unsavedChanges.push('LPO Information: [Parent LPO] field is required');
 
     return unsavedChanges;
@@ -203,16 +203,16 @@ async function _getCustomerDetails(context) {
     for (let fieldId in context.state.customer)
         context.state.customer[fieldId] = data[fieldId];
 
-    let index = context.getters['parentLpoOptions'].findIndex(item => parseInt(item.value) === parseInt(context.state.customer.parent));
+    let index = context.getters['parentLpoOptions'].findIndex(item => parseInt(item.value) === parseInt(context.state.customer.custentity_lpo_parent_account));
     if (index < 0) {
-        context.state.customer.parent = null;
+        context.state.customer.custentity_lpo_parent_account = null;
         context.state.form.disabled = false;
     }
 
     context.commit('resetForm');
 
     if (index < 0 && context.getters['parentLpoOptions'].length === 1)
-        context.state.form.data.parent = context.getters['parentLpoOptions'][0].value;
+        context.state.form.data.custentity_lpo_parent_account = context.getters['parentLpoOptions'][0].value;
 }
 
 async function _saveCustomerDetails(context) {

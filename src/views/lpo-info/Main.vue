@@ -8,7 +8,7 @@
 
             <div class="col-6 mb-4">
                 <b-input-group prepend="Parent LPO">
-                    <b-form-select :options="$store.getters['lpo-info/parentLpoOptions']" v-model="form.parent"
+                    <b-form-select :options="$store.getters['lpo-info/parentLpoOptions']" v-model="form.custentity_lpo_parent_account"
                                    v-validate="'required'" data-vv-name="parent_lpo"
                                    :class="errors.has('parent_lpo') ? 'is-invalid' : ''"
                                    :disabled="formDisabled"></b-form-select>
