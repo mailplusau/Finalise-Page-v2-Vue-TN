@@ -990,7 +990,8 @@ const postOperations = {
                 // customers associated with Blacktown and Surry Hills get special rates
                 value: (partnerId === 218 || partnerId === 469) ? '5.3' : defaultValues.serviceFuelSurcharge
             });
-        } else customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge_percen', value: null});
+        } else if ([2].includes(parseInt(customerRecord.getValue({fieldId: 'custentity_service_fuel_surcharge'}))))
+            customerRecord.setValue({fieldId: 'custentity_service_fuel_surcharge_percen', value: null});
 
         // Activate MP Standard based on the associated Franchisee
         if (parseInt(partnerRecord.getValue({fieldId: 'custentity_zee_mp_std_activated'})) === 1)
