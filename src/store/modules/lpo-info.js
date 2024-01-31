@@ -238,11 +238,25 @@ async function _saveCustomerDetails(context) {
         fieldIds,
     });
 
+    // After saving customer, check if Parent LPO is set for the first time, if yes then re-assign Sales Record to Gabby
+    if (parseInt(customerData['custentity_lpo_parent_account']) !== parseInt(context.state.customer.custentity_lpo_parent_account)
+        && !context.state.customer.custentity_lpo_parent_account)
+        await _reassignSalesRecordToGabby(context)
+
     for (let fieldId in context.state.customer) context.state.customer[fieldId] = data[fieldId];
 
     await context.dispatch('customer/getDetails', null, {root: true});
 
     context.commit('resetForm');
+}
+
+async function _reassignSalesRecordToGabby(context) {
+    if (!context.rootGetters['salesRecordId']) return;
+
+    await http.post('saveCustomerDetails', {
+        salesRecordId: context.rootGetters['salesRecordId']
+    });
+
 }
 
 export default {

@@ -809,6 +809,12 @@ const postOperations = {
 
         _writeResponseJson(response, sharedFunctions.createSalesRecord(salesRecordData));
     },
+    'reassignSalesRecordToGabby' : function (response, {salesRecordId}) {
+        // re-assigned to Gabby (1797389)
+        NS_MODULES.record['submitFields']({type: 'customrecord_sales', id: salesRecordId, values: {'custrecord_sales_assigned': 1797389}});
+
+        _writeResponseJson(response, 'Sales Record re-assigned.');
+    },
     'notifyITTeam' : function (response, {customerId, salesRecordId}) {
         let {record, search, email} = NS_MODULES;
 
