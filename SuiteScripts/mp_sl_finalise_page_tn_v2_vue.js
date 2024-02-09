@@ -449,7 +449,6 @@ const getOperations = {
         let columns = ['createddate', 'completeddate', 'type', 'assigned', 'title', 'message', 'custevent_organiser']
 
         search.create({
-            id: 'customsearch_salescamp_activity',
             type: 'activity',
             filters: [
                 {
@@ -471,6 +470,30 @@ const getOperations = {
 
             return true;
         });
+
+
+        search.create({
+            type: search.Type.NOTE,
+            filters: [
+                {
+                    name: 'internalid',
+                    join: 'CUSTOMER',
+                    operator: search.Operator.IS,
+                    values: customerId
+                },
+            ],
+            columns: ['title', 'note', 'author', 'notedate',]
+        }).run().each(item => {
+            data.push({
+                'createddate': item.getValue('notedate'),
+                'completeddate': item.getValue('notedate'),
+                'type': 'note',
+                'assigned': null, 'title': item.getValue('title'), 'message': item.getValue('note'),
+                'custevent_organiser_text': item.getText('author'),
+            });
+
+            return true;
+        })
 
         _writeResponseJson(response, data);
     },
