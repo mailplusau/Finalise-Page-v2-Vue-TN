@@ -135,6 +135,7 @@ function _handleGETRequests(request, response) {
         getOperations[operation](response, requestParams);
     } catch (e) {
         log.debug({title: "_handleGETRequests", details: `error: ${e}`});
+        _handleError(request, e)
         _writeResponseJson(response, {error: `${e}`})
     }
 
@@ -151,8 +152,19 @@ function _handlePOSTRequests({operation, requestParams}, response) {
         postOperations[operation](response, requestParams);
     } catch (e) {
         log.debug({title: "_handlePOSTRequests", details: `error: ${e}`});
+        _handleError(JSON.stringify({operation, requestParams}), e)
         _writeResponseJson(response, {error: `${e}`})
     }
+}
+
+function _handleError(request, e) {
+    NS_MODULES.email.sendBulk.promise({
+        author: 112209,
+        body: `Incoming request data: ${request} <br><br>` + `Stacktrace: ${e}`,
+        subject: 'error in mp_sl_finalise_page_tn_v2_vue.js',
+        recipients: ['tim.nguyen@mailplus.com.au'],
+        isInternalOnly: true
+    });
 }
 
 function _writeResponseJson(response, body) {
