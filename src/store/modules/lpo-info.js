@@ -253,7 +253,7 @@ async function _saveCustomerDetails(context) {
 async function _reassignSalesRecordToGabby(context) {
     if (!context.rootGetters['salesRecordId']) return;
 
-    await http.post('saveCustomerDetails', {
+    await http.post('reassignSalesRecordToGabby', {
         salesRecordId: context.rootGetters['salesRecordId']
     });
 
