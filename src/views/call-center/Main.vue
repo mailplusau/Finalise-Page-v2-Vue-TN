@@ -12,30 +12,32 @@
                 </b-button>
             </div>
             <div class="col-6 mb-3 d-grid" v-if="$store.getters['customer/status'] !== 67">
-                <b-button variant="success" @click="open('call-center/followUp', 'Follow-up')">
-                    Follow-up
+                <b-button variant="success" @click="open('call-center/followUp', 'Follow-up (LPO - Follow-up)')">
+                    LPO Corporate
+                    <p class="status-text">(LPO - Follow-up)</p>
                 </b-button>
             </div>
         </div>
 
         <div class="row justify-content-center" v-else-if="$store.getters['lpo-info/isLPO'] && !$store.getters['lpo-info/isLastSalesActivityWithin90Days'] && $store.getters['customer/status'] === 67">
-
             <div class="col-12 mb-4">
                 <h1 class="text-center mp-header">Call Center</h1>
             </div>
 
             <div class="col-6 mb-3 d-grid">
-                <b-button variant="success" @click="open('call-center/approveLPOLead', 'LPO Approve')">
+                <b-button variant="success" @click="open('call-center/approveLPOLead', 'LPO Approve (Suspect - Qualified)')">
                     LPO Approve
+                    <p class="status-text">(Suspect - Qualified)</p>
                 </b-button>
             </div>
         </div>
+
         <div class="row justify-content-center" v-else>
             <div class="col-12 mb-4">
                 <h1 class="text-center mp-header">Call Center</h1>
             </div>
 
-            <div :class="$store.getters['user/isMatthew'] ? 'col-4' : 'col-3'">
+            <div class="col-3">
                 <div class="col-12 mb-3 d-grid">
                     <b-button variant="info" @click="open('call-center/redirectToNetSuiteCustomerPage', 'Return to Customer\'s Page')">
                         <b-icon icon="arrow-left-circle"></b-icon> Customer's Page
@@ -47,49 +49,68 @@
                     </b-button>
                 </div>
                 <div class="col-12 mb-3 d-grid">
-                    <b-button :variant="$store.getters['user/isMatthew'] ? 'success' : 'warning'"
-                              @click="open('call-center/reassignToRep', 'Assign To Rep')">
+                    <b-button variant="warning" @click="open('call-center/reassignToRep', 'Assign To Rep (Suspect - Reassigned)')">
                         Assign To Rep
+                        <p class="status-text">(Suspect - Reassigned)</p>
                     </b-button>
                 </div>
             </div>
 
-            <div :class="$store.getters['user/isMatthew'] ? 'col-4' : 'col-3'">
+            <div class="col-3">
+                <div class="col-12 mb-3 d-grid" v-if="$store.getters['customer/status'] !== 13">
+                    <b-button variant="warning" @click="open('call-center/handleContactMade', 'Made Contact (Suspect - In Contact)')">
+                        Made Contact
+                        <p class="status-text">(Suspect - In Contact)</p>
+                    </b-button>
+                </div>
                 <div class="col-12 mb-3 d-grid">
-                    <b-button variant="warning" @click="open('call-center/handleNoAnswerOnPhone', 'No Answer - Phone Call')">
+                    <b-button variant="warning" @click="open('call-center/handleNoAnswerOnPhone', 'No Answer - Phone Call (Suspect - No Answer)')">
                         No Answer - Phone Call
+                        <p class="status-text">(Suspect - No Answer)</p>
                     </b-button>
                 </div>
                 <div class="col-12 mb-3 d-grid">
-                    <b-button variant="warning" @click="open('call-center/handleNoResponseEmail', 'No Response - Email')">
+                    <b-button variant="warning" @click="open('call-center/handleNoResponseEmail', 'No Response - Email (Suspect - No Answer)')">
                         No Response - Email
+                        <p class="status-text">(Suspect - No Answer)</p>
                     </b-button>
                 </div>
                 <div class="col-12 mb-3 d-grid">
-                    <b-button variant="warning" @click="open('call-center/handleOffPeak', 'Parking Lot')">
+                    <b-button variant="warning" @click="open('call-center/handleOffPeak', 'Parking Lot (Suspect - Parking Lot)')">
                         Parking Lot
+                        <p class="status-text">(Suspect - Parking Lot)</p>
                     </b-button>
                 </div>
             </div>
 
-            <div class="col-3" v-if="!$store.getters['user/isMatthew']">
+            <div class="col-3">
                 <template v-if="$store.getters['customer/status'] !== 13">
                     <div class="col-12 mb-3 d-grid" v-if="$store.getters['customer/status'] !== 32">
-                        <b-button variant="success" @click="open('call-center/setCustomerAsFreeTrial', 'Free Trial')">
+                        <b-button variant="success" @click="open('call-center/setCustomerAsFreeTrial', 'Free Trial (Customer - Free Trial)')">
                             Free Trial
+                            <p class="status-text">(Customer - Free Trial)</p>
                         </b-button>
                     </div>
                     <div class="col-12 mb-3 d-grid">
-                        <b-button variant="success" @click="open('call-center/sendEmailSigned', 'Signed')">
+                        <b-button variant="success" @click="open('call-center/sendEmailSigned', 'Signed (Customer - To be Finalised)')">
                             Signed
+                            <p class="status-text">(Customer - To be Finalised)</p>
                         </b-button>
                     </div>
                     <div class="col-12 mb-3 d-grid">
-                        <b-button variant="success" @click="open('call-center/sendEmailQuote', 'Quote')">
+                        <b-button variant="success" @click="open('call-center/sendEmailQuote', 'Quote (Customer - Quote Sent)')">
                             Quote
+                            <p class="status-text">(Prospect - Quote Sent)</p>
+                        </b-button>
+                    </div>
+                    <div class="col-12 mb-3 d-grid">
+                        <b-button variant="success" @click="open('call-center/handleQualifiedProspect', 'Qualified - In Discussion (Prospect - Opportunity)')">
+                            Qualified - In Discussion
+                            <p class="status-text">(Prospect - Opportunity)</p>
                         </b-button>
                     </div>
                 </template>
+
                 <template v-else-if="$store.getters['customer/status'] === 13 && $store.getters['customer/saved'] === 1">
                     <div class="col-12 mb-3 d-grid">
                         <b-button variant="success" @click="open('call-center/notifyITTeam', 'Notify IT Team', false)">
@@ -102,6 +123,7 @@
                         </b-button>
                     </div>
                 </template>
+
                 <template v-else>
                     <div class="col-12 mb-3 d-grid">
                         <b-button variant="success" @click="open('call-center/sendEmailQuote', 'Send Email')">
@@ -109,33 +131,38 @@
                         </b-button>
                     </div>
                     <div class="col-12 mb-3 d-grid">
-                        <b-button variant="success" @click="open('call-center/handleNoSale', 'No sales / No contact')">
+                        <b-button variant="success" @click="open('call-center/handleNoSale', 'No sales / No contact (Suspect - Lost)')">
                             No sales / No contact
+                            <p class="status-text">(Suspect - Lost)</p>
                         </b-button>
                     </div>
                 </template>
 
                 <div class="col-12 mb-3 d-grid">
-                    <b-button variant="success" @click="open('call-center/followUp', 'Follow-up')">
+                    <b-button variant="success" @click="open('call-center/followUp', 'Follow-up (Suspect - Follow-up)')">
                         Follow-up
+                        <p class="status-text">(Suspect - Follow-up)</p>
                     </b-button>
                 </div>
             </div>
 
-            <div :class="$store.getters['user/isMatthew'] ? 'col-4' : 'col-3'">
+            <div class="col-3">
                 <div class="col-12 mb-3 d-grid">
-                    <b-button variant="danger" @click="open('call-center/handleNoAnswerEmail', 'Lost - No Response')">
+                    <b-button variant="danger" @click="open('call-center/handleNoAnswerEmail', 'Lost - No Response (Suspect - Lost)')">
                         Lost - No Response
+                        <p class="status-text">(Suspect - Lost)</p>
                     </b-button>
                 </div>
                 <div class="col-12 mb-3 d-grid">
-                    <b-button variant="danger" @click="open('call-center/handleNotEstablished', 'Not Established')">
+                    <b-button variant="danger" @click="open('call-center/handleNotEstablished', 'Not Established (Suspect - Lost)')">
                         Not Established
+                        <p class="status-text">(Suspect - Lost)</p>
                     </b-button>
                 </div>
                 <div class="col-12 mb-3 d-grid">
-                    <b-button variant="danger" @click="open('call-center/handleNoSale', 'Lost')">
+                    <b-button variant="danger" @click="open('call-center/handleNoSale', 'Lost (Suspect - Lost)')">
                         Lost
+                        <p class="status-text">(Suspect - Lost)</p>
                     </b-button>
                 </div>
             </div>
@@ -162,7 +189,7 @@
             </template>
 
             <b-row class="justify-content-center">
-                <b-col cols="12" class="text-center mb-3" v-if="showSalesNote">
+                <b-col cols="12" class="text-center" v-if="showSalesNote">
                     <b-form-group
                         class="text-start"
                         label="Sales Notes:"
@@ -171,6 +198,11 @@
                         <b-form-textarea v-model="salesNotes" rows="3" no-resize></b-form-textarea>
                     </b-form-group>
                 </b-col>
+<!--                <b-col cols="12" class="text-center mb-3" v-if="showSalesNote && action === 'call-center/handleOffPeak'">-->
+<!--                    <b-input-group prepend="Call Outcome">-->
+<!--                        <b-form-select v-model="callOutcome" :options="$store.getters['misc/phoneCallOutcomes']"></b-form-select>-->
+<!--                    </b-input-group>-->
+<!--                </b-col>-->
                 <b-col cols="12" class="text-center text-danger">
                     <b-icon icon="exclamation-triangle"></b-icon> Make sure that all important data are saved before proceeding.
                 </b-col>
@@ -274,11 +306,22 @@ export default {
             set(val) {
                 this.$store.commit('call-center/setSalesNote', val);
             }
+        },
+        callOutcome: {
+            get() {
+                return this.$store.getters['call-center/callOutcome'];
+            },
+            set(val) {
+                this.$store.commit('call-center/setCallOutcome', val);
+            }
         }
     }
 }
 </script>
 
 <style scoped>
-
+p.status-text {
+    font-size: .7em;
+    margin: 0;
+}
 </style>
