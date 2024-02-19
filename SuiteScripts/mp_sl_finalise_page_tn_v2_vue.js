@@ -761,28 +761,35 @@ const postOperations = {
 
         _writeResponseJson(response, 'Contact Delete!');
     },
-    'createSalesNote' : function (response, {userId, customerId, salesRecordId, salesNote}) {
+    'createSalesNote' : function (response, {userId, customerId, salesRecordId, salesNote, callOutcome}) {
+        NS_MODULES.log.debug('createSalesNote', `${JSON.stringify({userId, customerId, salesRecordId, salesNote, callOutcome})}`)
         if (salesNote) {
             let {record} = NS_MODULES;
-            let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId, isDynamic: true});
-            let phoneCallRecord = record.create({ type: record.Type['PHONE_CALL'], isDynamic: true });
+            // let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId, isDynamic: true});
+            // let phoneCallRecord = record.create({ type: record.Type['PHONE_CALL'], isDynamic: true });
             let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId, isDynamic: true});
             let salesCampaignId = salesRecord.getValue({fieldId: 'custrecord_sales_campaign'});
             let salesCampaignRecord = record.load({type: 'customrecord_salescampaign', id: salesCampaignId, isDynamic: true});
+            //
+            // phoneCallRecord.setValue({fieldId: 'assigned', value: customerRecord.getValue({fieldId: 'partner'})});
+            // phoneCallRecord.setValue({fieldId: 'custevent_organiser', value: userId});
+            // phoneCallRecord.setValue({fieldId: 'startdate', value: new Date});
+            // phoneCallRecord.setValue({fieldId: 'company', value: customerId});
+            // phoneCallRecord.setValue({fieldId: 'status', value: 'COMPLETE'});
+            // phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: callOutcome || 16});
+            // phoneCallRecord.setValue({fieldId: 'title', value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Call Notes'});
+            // phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
+            //
+            // let id = phoneCallRecord.save({ignoreMandatoryFields: true});
 
-            phoneCallRecord.setValue({fieldId: 'assigned', value: customerRecord.getValue({fieldId: 'partner'})});
-            phoneCallRecord.setValue({fieldId: 'custevent_organiser', value: userId});
-            phoneCallRecord.setValue({fieldId: 'startdate', value: new Date});
-            phoneCallRecord.setValue({fieldId: 'company', value: customerId});
-            phoneCallRecord.setValue({fieldId: 'status', value: 'COMPLETE'});
-            phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 16});
-            phoneCallRecord.setValue({fieldId: 'title', value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Call Notes'});
-            phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
+            let id = _createUserNote(customerId, salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Call Notes', salesNote);
 
-            phoneCallRecord.save({ignoreMandatoryFields: true});
-
+            NS_MODULES.log.debug('createSalesNote', `phoneCallRecord saved user note with id ${id}`)
             _writeResponseJson(response, `Sales Note saved`);
-        } else _writeResponseJson(response, {error: `No Sales Note was submitted`});
+        } else {
+            NS_MODULES.log.debug('createSalesNote', `No Sales Note was submitted`)
+            _writeResponseJson(response, {error: `No Sales Note was submitted`});
+        }
     },
     'handleCallCenterOutcomes' : function (response, {userId, customerId, salesRecordId, salesNote, localUTCOffset, outcome}) {
         let localTime = _getLocalTimeFromOffset(localUTCOffset);
