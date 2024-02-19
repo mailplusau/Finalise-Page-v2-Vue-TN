@@ -37,7 +37,8 @@ const state = {
     lpoAccountStatus: [
         {value: 1, text: 'Active'},
         {value: 2, text: 'Inactive'},
-    ]
+    ],
+    phoneCallOutcomes: [],
 };
 
 const getters = {
@@ -57,6 +58,7 @@ const getters = {
     commencementTypeOptions : state => state.commencementTypeOptions,
     inOutOptions : state => state.inOutOptions,
     accountManagers : state => state.accountManagers,
+    phoneCallOutcomes : state => state.phoneCallOutcomes,
 };
 
 const mutations = {};
@@ -76,6 +78,7 @@ const actions = {
         context.dispatch('getCommencementTypeOptions').then();
         context.dispatch('getInOutOptions').then();
         context.dispatch('getCarrierList').then();
+        context.dispatch('getPhoneCallOutcomes').then();
     },
     getIndustries : async (context) => {
         await _fetchDataForHtmlSelect(context, context.state.industries,
@@ -120,6 +123,10 @@ const actions = {
     getCarrierList : async context => {
         await _fetchDataForHtmlSelect(context, context.state.carrierList,
             null, 'customlist_carrier', 'internalId', 'name');
+    },
+    getPhoneCallOutcomes : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.phoneCallOutcomes,
+            null, 'customlist_call_outcome', 'internalId', 'name');
     },
 };
 
