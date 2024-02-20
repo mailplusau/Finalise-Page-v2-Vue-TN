@@ -983,10 +983,10 @@ const postOperations = {
             record.load({type: 'customrecord_commencement_register', id: commRegData.internalid}) :
             record.create({type: 'customrecord_commencement_register'});
 
-        commRegData['custrecord_date_entry'] = _parseISODate(commRegData['custrecord_date_entry']);
-        commRegData['custrecord_comm_date'] = _parseISODate(commRegData['custrecord_comm_date']);
-        commRegData['custrecord_comm_date_signup'] = _parseISODate(commRegData['custrecord_comm_date_signup']);
-        commRegData['custrecord_finalised_on'] = _parseISODate(commRegData['custrecord_finalised_on']);
+        commRegData['custrecord_date_entry'] = new Date(commRegData['custrecord_date_entry']);
+        commRegData['custrecord_comm_date'] = new Date(commRegData['custrecord_comm_date']);
+        commRegData['custrecord_comm_date_signup'] = new Date(commRegData['custrecord_comm_date_signup']);
+        commRegData['custrecord_finalised_on'] = new Date(commRegData['custrecord_finalised_on']);
         commRegData['custrecord_salesrep'] = salesRepId;
 
         for (let fieldId in commRegData)
@@ -1247,9 +1247,10 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
     },
     'NO_ANSWER_EMAIL': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
-        let {https, record, email, runtime, url} = NS_MODULES;
-        let customerId = customerRecord.getValue({fieldId: 'internalid'});
+        let {https, record, search, email, runtime, url} = NS_MODULES;
+        let customerId = customerRecord.getValue({fieldId: 'id'});
         let customerEmail = customerRecord.getValue({fieldId: 'custentity_email_service'});
+        let salesRepId = customerRecord.getValue({fieldId: 'custentity_mp_toll_salesrep'});
 
         _changeCustomerStatusIfNotSigned(customerRecord, 59); // SUSPECT-Lost
         customerRecord.setValue({fieldId: 'custentity13', value: localTime});
@@ -1273,40 +1274,59 @@ const handleCallCenterOutcomes = {
         salesRecord.setValue({fieldId: 'custrecord_sales_lastcalldate', value: localTime});
 
         let emailTemplateId = 154;
+        let contactId = null;
         let newLeadEmailTemplateRecord = record.load({type: 'customrecord_camp_comm_template', id: emailTemplateId});
         let templateSubject = newLeadEmailTemplateRecord.getValue({fieldId: 'custrecord_camp_comm_subject'});
 
-        let httpsGetResult = https.get({url: url.format({
-                domain: 'https://1048144.extforms.netsuite.com/app/site/hosting/scriptlet.nl',
-                params: {
-                    script: 395,
-                    deploy: 1,
-                    compid: 1048144,
-                    h: '6d4293eecb3cb3f4353e',
-                    rectype: 'customer',
-                    template: emailTemplateId,
-                    recid: customerId,
-                    salesrep: null,
-                    dear: null,
-                    contactid: null,
-                    userid: userId,
-                }
-            })});
-        let emailHtml = httpsGetResult.body;
 
-        email.sendBulk({
-            author: runtime.getCurrentUser().role === 1032 ? 112209 : userId,
-            body: emailHtml,
-            subject: templateSubject,
-            recipients: [customerEmail],
-            cc: [
-                runtime.getCurrentUser().email,
-            ],
-            relatedRecords: {
-                'entityId': customerId
-            },
-            isInternalOnly: true
-        });
+        search.create({
+            type: "contact",
+            filters:
+                [
+                    ["isinactive", "is", "F"],
+                    'AND',
+                    ["company", "is", customerId],
+                    'AND',
+                    ['email', 'isnotempty', '']
+                ],
+            columns: ['internalid']
+        }).run().each(item => {contactId = item.id;});
+
+        if (contactId) {
+            let httpsGetResult = https.get({
+                url: url.format({
+                    domain: 'https://1048144.extforms.netsuite.com/app/site/hosting/scriptlet.nl',
+                    params: {
+                        script: 395,
+                        deploy: 1,
+                        compid: 1048144,
+                        h: '6d4293eecb3cb3f4353e',
+                        rectype: 'customer',
+                        template: emailTemplateId,
+                        recid: customerId,
+                        salesrep: salesRepId,
+                        dear: null,
+                        contactid: contactId,
+                        userid: userId,
+                    }
+                })
+            });
+            let emailHtml = httpsGetResult.body;
+
+            email.sendBulk({
+                author: runtime['getCurrentUser']().role === 1032 ? 112209 : userId,
+                body: emailHtml,
+                subject: templateSubject,
+                recipients: [customerEmail],
+                cc: [
+                    runtime['getCurrentUser']().email,
+                ],
+                relatedRecords: {
+                    'entityId': customerId
+                },
+                isInternalOnly: true
+            });
+        }
 
         if (parseInt(customerRecord.getValue({fieldId: 'leadsource'})) === -4) // lead generated by zee, informing them of lost lead
             _informFranchiseeOfLostLeadThatTheyEntered(customerRecord, 'No Response - Potentially Bad Record', salesNote);
@@ -1314,12 +1334,10 @@ const handleCallCenterOutcomes = {
         _createUserNote(customerId, 'Lead Lost - No Response - Potentially Bad Record', salesNote);
     },
     'NO_ANSWER_PHONE': ({userId, customerRecord, salesRecord, salesCampaignRecord, phoneCallRecord, salesNote, localTime}) => {
+        _changeCustomerStatusIfNotSigned(customerRecord, 20); // SUSPECT-No Answer
         if (parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'})) === 55) { // AusPost GPO List - Cleanse
-            _changeCustomerStatusIfNotSigned(customerRecord, 20); // SUSPECT-No Answer
             phoneCallRecord.setValue({fieldId: 'title', value: 'Prospecting Call - GPO - No Answer'});
         } else {
-            if (parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'})) !== 65) // MPEX Customers
-                _changeCustomerStatusIfNotSigned(customerRecord, 35); // PROSPECT-No Answer
 
             phoneCallRecord.setValue({fieldId: 'title', value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - No Answer - Phone Call'});
         }
@@ -1351,13 +1369,10 @@ const handleCallCenterOutcomes = {
         });
     },
     'NO_RESPONSE_EMAIL': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
-        let salesCampaignType = parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'}));
+        // let salesCampaignType = parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'}));
         let salesCampaignId = parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'}));
 
-        if (salesCampaignId === 55) { // AusPost GPO List - Cleanse
-            _changeCustomerStatusIfNotSigned(customerRecord, 20); // SUSPECT-No Answer
-        } else if (salesCampaignType !== 65) // MPEX Customers
-            _changeCustomerStatusIfNotSigned(customerRecord, 35); // PROSPECT-No Answer
+        _changeCustomerStatusIfNotSigned(customerRecord, 20); // SUSPECT-No Answer
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
         phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6}); // No Contact
@@ -1414,7 +1429,7 @@ const handleCallCenterOutcomes = {
         if (parseInt(customerRecord.getValue({fieldId: 'leadsource'})) === -4) // lead generated by zee, informing them of lost lead
             _informFranchiseeOfLostLeadThatTheyEntered(customerRecord, 'Not An Established Business - Potentially Bad Record', salesNote);
 
-        _createUserNote(customerRecord.getValue({fieldId: 'internalid'}), 'Lead Lost - Not An Established Business - Potentially Bad Record', salesNote);
+        _createUserNote(customerRecord.getValue({fieldId: 'id'}), 'Lead Lost - Not An Established Business - Potentially Bad Record', salesNote);
     },
     'FOLLOW_UP': ({userId, customerRecord, salesRecord, phoneCallRecord, salesCampaignRecord, salesNote, localTime}) => {
         if (parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_campaign'})) === 69) // if campaign is LPO (69)
@@ -1870,7 +1885,7 @@ function _createUserNote(customerId, title, note) {
 
         direction: 1, // Incoming (1)
         notetype: 7, // Note (7)
-        note,
+        note: note || 'None (no note was provided)',
         title
     }
 
