@@ -38,7 +38,7 @@ const state = {
         {value: 1, text: 'Active'},
         {value: 2, text: 'Inactive'},
     ],
-    phoneCallOutcomes: [],
+    parkingLotReasons: [],
 };
 
 const getters = {
@@ -58,7 +58,7 @@ const getters = {
     commencementTypeOptions : state => state.commencementTypeOptions,
     inOutOptions : state => state.inOutOptions,
     accountManagers : state => state.accountManagers,
-    phoneCallOutcomes : state => state.phoneCallOutcomes,
+    parkingLotReasons : state => state.parkingLotReasons,
 };
 
 const mutations = {};
@@ -78,7 +78,7 @@ const actions = {
         context.dispatch('getCommencementTypeOptions').then();
         context.dispatch('getInOutOptions').then();
         context.dispatch('getCarrierList').then();
-        context.dispatch('getPhoneCallOutcomes').then();
+        context.dispatch('getParkingLotReasons').then();
     },
     getIndustries : async (context) => {
         await _fetchDataForHtmlSelect(context, context.state.industries,
@@ -124,9 +124,9 @@ const actions = {
         await _fetchDataForHtmlSelect(context, context.state.carrierList,
             null, 'customlist_carrier', 'internalId', 'name');
     },
-    getPhoneCallOutcomes : async context => {
-        await _fetchDataForHtmlSelect(context, context.state.phoneCallOutcomes,
-            null, 'customlist_call_outcome', 'internalId', 'name');
+    getParkingLotReasons : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.parkingLotReasons,
+            null, 'customlist_parking_lot_reasons', 'internalId', 'name');
     },
 };
 

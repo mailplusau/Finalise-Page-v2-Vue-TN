@@ -189,7 +189,7 @@
             </template>
 
             <b-row class="justify-content-center">
-                <b-col cols="12" class="text-center" v-if="showSalesNote">
+                <b-col cols="12" class="text-center mb-2" v-if="showSalesNote">
                     <b-form-group
                         class="text-start"
                         label="Sales Notes:"
@@ -198,11 +198,11 @@
                         <b-form-textarea v-model="salesNotes" rows="3" no-resize></b-form-textarea>
                     </b-form-group>
                 </b-col>
-<!--                <b-col cols="12" class="text-center mb-3" v-if="showSalesNote && action === 'call-center/handleOffPeak'">-->
-<!--                    <b-input-group prepend="Call Outcome">-->
-<!--                        <b-form-select v-model="callOutcome" :options="$store.getters['misc/phoneCallOutcomes']"></b-form-select>-->
-<!--                    </b-input-group>-->
-<!--                </b-col>-->
+                <b-col cols="12" class="text-center mb-3" v-if="showSalesNote && action === 'call-center/handleOffPeak'">
+                    <b-input-group prepend="Reason">
+                        <b-form-select v-model="parkingLotReason" :options="$store.getters['misc/parkingLotReasons']"></b-form-select>
+                    </b-input-group>
+                </b-col>
                 <b-col cols="12" class="text-center text-danger">
                     <b-icon icon="exclamation-triangle"></b-icon> Make sure that all important data are saved before proceeding.
                 </b-col>
@@ -210,7 +210,11 @@
 
             <template v-slot:modal-footer>
                 <b-button size="sm" @click="modalOpen = false">Cancel</b-button>
-                <b-button variant="danger" size="sm" @click="dispatchAction">Proceed</b-button>
+                <b-button v-if="action === 'call-center/handleOffPeak'" variant="danger" size="sm" @click="dispatchAction"
+                          :disabled="!parkingLotReason">
+                    {{!parkingLotReason ? 'Select parking lot reason' : 'Proceed'}}
+                </b-button>
+                <b-button v-else variant="danger" size="sm" @click="dispatchAction">Proceed</b-button>
             </template>
         </b-modal>
 
@@ -285,7 +289,8 @@ export default {
         },
         async convertToBAU() {
             this.bauConversionModal = false;
-            if(!await this.$store.dispatch('checkForUnsavedChanges')) return;
+            // disabled as requested
+            // if(!await this.$store.dispatch('checkForUnsavedChanges')) return;
 
             await this.$store.dispatch('lpo-info/convertToBAU');
         }
@@ -307,12 +312,12 @@ export default {
                 this.$store.commit('call-center/setSalesNote', val);
             }
         },
-        callOutcome: {
+        parkingLotReason: {
             get() {
-                return this.$store.getters['call-center/callOutcome'];
+                return this.$store.getters['call-center/parkingLotReason'];
             },
             set(val) {
-                this.$store.commit('call-center/setCallOutcome', val);
+                this.$store.commit('call-center/setParkingLotReason', val);
             }
         }
     }

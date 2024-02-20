@@ -215,6 +215,13 @@ let actions = {
             context.commit('resetDetailForm');
         } catch (e) { console.error(e); }
     },
+    saveParkingLotReason : async (context, reasonId) => {
+        await http.post('saveCustomerDetails', {
+            customerId: context.rootGetters['customerId'],
+            customerData: {custentity_lead_parking_lot_reasons: reasonId},
+            fieldIds: ['custentity_lead_parking_lot_reasons'],
+        });
+    }
 };
 
 actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {

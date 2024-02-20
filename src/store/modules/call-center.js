@@ -4,14 +4,17 @@ const baseURL = 'https://' + process.env.VUE_APP_NS_REALM + '.app.netsuite.com';
 
 const state = {
     salesNote: '',
+    parkingLotReason: null,
 };
 
 const getters = {
-    salesNote : state => state.salesNote
+    salesNote : state => state.salesNote,
+    parkingLotReason : state => state.parkingLotReason
 };
 
 const mutations = {
     setSalesNote : (state, note = '') => { state.salesNote = note; },
+    setParkingLotReason : (state, reason = 16) => { state.parkingLotReason = reason; },
 };
 
 const actions = {
@@ -23,6 +26,24 @@ const actions = {
 
         window.location.href = baseURL + '/app/common/entity/custjob.nl?id=' + context.rootGetters['customerId'];
     },
+    handleContactMade : async context => {
+        context.commit('displayBusyGlobalModal',
+            {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
+
+        // Change customer status to SUSPECT-In Contact (69)
+        await context.dispatch('customer/changeStatus', 69, {root: true});
+
+        context.dispatch('redirectToNetSuiteCustomerPage').then();
+    },
+    handleQualifiedProspect : async context => {
+        context.commit('displayBusyGlobalModal',
+            {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
+
+        // Change customer status to PROSPECT-Opportunity (58)
+        await context.dispatch('customer/changeStatus', 58, {root: true});
+
+        context.dispatch('redirectToNetSuiteCustomerPage').then();
+    },
     handleNoAnswerOnPhone : async context => {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing outcome [No Answer - Phone Call]. Please Wait...', open: true}, {root: true});
@@ -31,6 +52,9 @@ const actions = {
             context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
     setCustomerAsFreeTrial : async context => {
+        // check for non-geocoded address, empty email or empty ABN, throw error if any
+        if (!_areAddressesGeocoded(context) || !_checkEmailsNotEmptyOrDefaulted(context) || !_checkABNNotEmpty(context)) return;
+
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Setting Customer as Free Trial. Please Wait...', open: true}, {root: true});
 
@@ -39,7 +63,7 @@ const actions = {
         // Change customer status to CUSTOMER-Free Trial
         // await context.dispatch('customer/changeStatus', 32, {root: true}); // REMOVE FOR NOW
 
-        _goToSendEmailModule(context, {freetrial: 'T', savecustomer: 'F'});
+        _goToSendEmailModule(context, {freetrial: 'T', savecustomer: 'F'}, true);
     },
     approveLPOLead : async context => {
         context.commit('displayBusyGlobalModal',
@@ -53,7 +77,8 @@ const actions = {
         window.location.href = baseURL + '/app/common/entity/custjob.nl?id=' + context.rootGetters['customerId'];
     },
     sendEmailSigned : async context => {
-        if (!_areAddressesGeocoded(context) || !_checkEmailsNotEmptyOrDefaulted(context)) return; // check for non-geocoded address, throw error if any
+        // check for non-geocoded address, empty email or empty ABN, throw error if any
+        if (!_areAddressesGeocoded(context) || !_checkEmailsNotEmptyOrDefaulted(context) || !_checkABNNotEmpty(context)) return;
 
         context.commit('displayBusyGlobalModal',
             {title: 'Redirecting...', message: 'Redirecting to Email Module. Please Wait...', open: true}, {root: true});
@@ -63,17 +88,18 @@ const actions = {
         // Change customer status to CUSTOMER-To Be Finalised
         // await context.dispatch('customer/changeStatus', 66, {root: true}); // REMOVE FOR NOW
 
-        _goToSendEmailModule(context, {closedwon: 'T', savecustomer: 'F'});
+        _goToSendEmailModule(context, {closedwon: 'T', savecustomer: 'F'}, true);
     },
     sendEmailQuote : async context => {
-        if (!_areAddressesGeocoded(context) || !_checkEmailsNotEmptyOrDefaulted(context)) return; // check for non-geocoded address, throw error if any
+        // check for non-geocoded address, empty email or empty ABN, throw error if any
+        if (!_areAddressesGeocoded(context) || !_checkEmailsNotEmptyOrDefaulted(context) || !_checkABNNotEmpty(context)) return;
 
         context.commit('displayBusyGlobalModal',
             {title: 'Redirecting...', message: 'Redirecting to Email Module. Please Wait...', open: true}, {root: true});
 
         await _createSalesNote(context);
 
-        _goToSendEmailModule(context, {oppwithvalue: 'T', savecustomer: 'F'});
+        _goToSendEmailModule(context, {oppwithvalue: 'T', savecustomer: 'F'}, true);
     },
     handleNoAnswerEmail : async context => {
         context.commit('displayBusyGlobalModal',
@@ -88,7 +114,7 @@ const actions = {
 
         await _createSalesNote(context);
 
-        _goToSendEmailModule(context, {callback: 'T'});
+        _goToSendEmailModule(context, {callback: 'T'}, true);
     },
     handleNoResponseEmail : async context => {
         context.commit('displayBusyGlobalModal',
@@ -103,7 +129,7 @@ const actions = {
 
         await _createSalesNote(context);
 
-        _goToSendEmailModule(context, {oppwithvalue: 'T', savecustomer: 'T'});
+        _goToSendEmailModule(context, {oppwithvalue: 'T', savecustomer: 'T'}, true);
     },
     handleNoSale : async context => {
         context.commit('displayBusyGlobalModal',
@@ -111,7 +137,7 @@ const actions = {
 
         await _createSalesNote(context);
 
-        _goToSendEmailModule(context, {nosale: 'T'});
+        _goToSendEmailModule(context, {nosale: 'T'}, true);
     },
     handleNotEstablished : async context => {
         context.commit('displayBusyGlobalModal',
@@ -131,6 +157,9 @@ const actions = {
                 'customdeploy_sl_sales_campaign_popup') + '&sales_record_id=' +
             parseInt(context.rootGetters['salesRecordId']) + '&recid=' + parseInt(context.rootGetters['customerId']);
 
+        // Change customer status to SUSPECT-Reassign (40)
+        await context.dispatch('customer/changeStatus', 40, {root: true});
+
         window.open(url, "_self",
             "height=300,width=300,modal=yes,alwaysRaised=yes,location=0,toolbar=0");
     },
@@ -140,8 +169,9 @@ const actions = {
 
         await _createSalesNote(context);
 
-        // Change customer status to SUSPECT-Off Peak Pipeline
+        // Change customer status to SUSPECT-Parking Lot
         await context.dispatch('customer/changeStatus', 62, {root: true});
+        await context.dispatch('customer/saveParkingLotReason', context.state.parkingLotReason, {root: true})
 
         context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
@@ -162,14 +192,14 @@ const actions = {
                 salesRecordId: context.rootGetters['salesRecordId'],
             });
 
-            _goToSendEmailModule(context, {closedwon: 'T', savecustomer: 'T'});
+            _goToSendEmailModule(context, {closedwon: 'T', savecustomer: 'T'}, true);
         } catch (e) { console.error(e); }
 
         context.commit('displayBusyGlobalModal', {open: false}, {root: true});
     }
 };
 
-function _goToSendEmailModule(context, extraParams) {
+function _goToSendEmailModule(context, extraParams, useNewModule = false) {
     let params = {
         custid: parseInt(context.rootGetters['customerId']),
         sales_record_id: parseInt(context.rootGetters['salesRecordId']),
@@ -180,9 +210,11 @@ function _goToSendEmailModule(context, extraParams) {
     };
 
     params = JSON.stringify(params);
-
-    let upload_url = baseURL + window['nlapiResolveURL']('suitelet',
-        'customscript_sl_send_email_module', 'customdeploy_sl_send_email_module') + '&params=' + params;
+    let upload_url = useNewModule /**&& [409635, 1732844].includes(context.rootGetters['user/id']) **/ ?
+        (baseURL + window['nlapiResolveURL']('suitelet',
+            'customscript_sl_email_sender_tn_v2_vue', 'customdeploy_sl_email_sender_tn_v2_vue') + '&params=' + params) :
+        (baseURL + window['nlapiResolveURL']('suitelet',
+            'customscript_sl_send_email_module', 'customdeploy_sl_send_email_module') + '&params=' + params);
 
     window.open(upload_url, "_self",
         "height=750,width=650,modal=yes,alwaysRaised=yes");
@@ -264,6 +296,17 @@ function _checkEmailsNotEmptyOrDefaulted(context) {
         return false;
     }
 
+    return true;
+}
+
+function _checkABNNotEmpty(context) {
+    if (!context.rootGetters['customer/details'].vatregnumber) {
+        context.commit('displayErrorGlobalModal', {
+            title: 'Customer Record has invalid ABN field',
+            message: 'Please check the ABN field of the customer. Make sure they are not empty or invalid.'
+        }, {root: true});
+        return false;
+    }
     return true;
 }
 
