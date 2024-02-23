@@ -761,26 +761,12 @@ const postOperations = {
 
         _writeResponseJson(response, 'Contact Delete!');
     },
-    'createSalesNote' : function (response, {userId, customerId, salesRecordId, salesNote, callOutcome}) {
-        NS_MODULES.log.debug('createSalesNote', `${JSON.stringify({userId, customerId, salesRecordId, salesNote, callOutcome})}`)
+    'createSalesNote' : function (response, {customerId, salesRecordId, salesNote}) {
         if (salesNote) {
             let {record} = NS_MODULES;
-            // let customerRecord = record.load({type: record.Type.CUSTOMER, id: customerId, isDynamic: true});
-            // let phoneCallRecord = record.create({ type: record.Type['PHONE_CALL'], isDynamic: true });
             let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId, isDynamic: true});
             let salesCampaignId = salesRecord.getValue({fieldId: 'custrecord_sales_campaign'});
             let salesCampaignRecord = record.load({type: 'customrecord_salescampaign', id: salesCampaignId, isDynamic: true});
-            //
-            // phoneCallRecord.setValue({fieldId: 'assigned', value: customerRecord.getValue({fieldId: 'partner'})});
-            // phoneCallRecord.setValue({fieldId: 'custevent_organiser', value: userId});
-            // phoneCallRecord.setValue({fieldId: 'startdate', value: new Date});
-            // phoneCallRecord.setValue({fieldId: 'company', value: customerId});
-            // phoneCallRecord.setValue({fieldId: 'status', value: 'COMPLETE'});
-            // phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: callOutcome || 16});
-            // phoneCallRecord.setValue({fieldId: 'title', value: salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Call Notes'});
-            // phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
-            //
-            // let id = phoneCallRecord.save({ignoreMandatoryFields: true});
 
             let id = _createUserNote(customerId, salesCampaignRecord.getValue({fieldId: 'name'}) + ' - Call Notes', salesNote);
 
@@ -1209,8 +1195,8 @@ const sharedFunctions = {
 
     markSalesRecordAsCompleted(salesRecordId) {
         let salesRecord = NS_MODULES.record.load({type: 'customrecord_sales', id: salesRecordId});
-
         salesRecord.setValue({fieldId: 'custrecord_sales_completed', value: true});
+        salesRecord.setValue({fieldId: 'custrecord_sales_outcome', value: 16}); // Complete (16)
 
         return salesRecord.save({ignoreMandatoryFields: true});
     },
