@@ -44,6 +44,11 @@
                     </b-button>
                 </div>
                 <div class="col-12 mb-3 d-grid">
+                    <b-button variant="info" @click="open('call-center/sendNormalEmail', 'Send Email')">
+                        Send Email
+                    </b-button>
+                </div>
+                <div class="col-12 mb-3 d-grid">
                     <b-button variant="primary" @click="open('call-center/setAppointment', 'Set Appointment')">
                         Set Appointment
                     </b-button>
@@ -125,11 +130,11 @@
                 </template>
 
                 <template v-else>
-                    <div class="col-12 mb-3 d-grid">
-                        <b-button variant="success" @click="open('call-center/sendEmailQuote', 'Send Email')">
-                            Send Email
-                        </b-button>
-                    </div>
+<!--                    <div class="col-12 mb-3 d-grid">-->
+<!--                        <b-button variant="success" @click="open('call-center/sendEmailQuote', 'Send Email')">-->
+<!--                            Send Email-->
+<!--                        </b-button>-->
+<!--                    </div>-->
                     <div class="col-12 mb-3 d-grid">
                         <b-button variant="success" @click="open('call-center/handleNoSale', 'No sales / No contact (Suspect - Lost)')">
                             No sales / No contact

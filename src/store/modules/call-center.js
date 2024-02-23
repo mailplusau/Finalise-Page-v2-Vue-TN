@@ -196,6 +196,14 @@ const actions = {
         } catch (e) { console.error(e); }
 
         context.commit('displayBusyGlobalModal', {open: false}, {root: true});
+    },
+    sendNormalEmail : async context => {
+        context.commit('displayBusyGlobalModal',
+            {title: 'Redirecting...', message: 'Redirecting to Send Email module. Please Wait...', open: true}, {root: true});
+
+        await _createSalesNote(context);
+
+        _goToSendEmailModule(context, {sendEmail: 'T'}, true);
     }
 };
 
