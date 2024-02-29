@@ -1422,8 +1422,6 @@ const handleCallCenterOutcomes = {
             _changeCustomerStatusIfNotSigned(customerRecord, 67); // LPO-Follow-up
         else _changeCustomerStatusIfNotSigned(customerRecord, 18); // SUSPECT-Follow-up
 
-        customerRecord.setValue({fieldId: 'salesrep', value: userId});
-
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
         phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 25}); // Opportunity
         phoneCallRecord.setValue({
