@@ -1048,7 +1048,7 @@ const postOperations = {
             _sendEmailsAfterSavingCommencementRegister(userId, customerId);
 
             log.debug({title: 'saveCommencementRegister', details: `syncing product pricing`});
-            _checkAndSyncProductPricing(partnerRecord);
+            _checkAndSyncProductPricing(customerId, partnerRecord);
 
             // Schedule Script to create / edit / delete the financial tab items with the new details
             // This needs to run before customer's status change to Signed (13)
@@ -1439,8 +1439,8 @@ const handleCallCenterOutcomes = {
     },
 };
 
-function _checkAndSyncProductPricing(partnerRecord) {
-    let {task, log} = NS_MODULES;
+function _checkAndSyncProductPricing(customerId, partnerRecord) {
+    let {task} = NS_MODULES;
     let expressActive = partnerRecord.getValue({fieldId: 'custentity_zee_mp_exp_activated'});
     let standardActive = parseInt(partnerRecord.getValue({fieldId: 'custentity_zee_mp_std_activated'})) === 1;
     expressActive = !expressActive || parseInt(expressActive) === 1; // empty is also considered yes
@@ -1448,23 +1448,19 @@ function _checkAndSyncProductPricing(partnerRecord) {
     try {
         let scriptTask;
 
-        if (standardActive && expressActive) {
+        if (standardActive || expressActive) {
             scriptTask = task.create({
                 taskType: task.TaskType['SCHEDULED_SCRIPT'],
                 scriptId: 'customscript_ss_sync_prod_pricing_mappin',
                 deploymentId: 'customdeploy2',
-            });
-        } else if (expressActive) {
-            scriptTask = task.create({
-                taskType: task.TaskType['SCHEDULED_SCRIPT'],
-                scriptId: 'customscript_ss_exp_prod_sync_map',
-                deploymentId: 'customdeploy2',
+                params: {
+                    custscript_prod_pricing_cust_id: customerId
+                }
             });
         }
 
-        log.debug({title: '_checkAndSyncProductPricing', details: `expressActive: ${expressActive} | standardActive: ${standardActive}`});
         if (scriptTask) scriptTask.submit();
-    } catch (e) { log.debug({title: '_checkAndSyncProductPricing', details: `${e}`}); }
+    } catch (e) { /**/ }
 }
 
 function _updateDefaultShippingAndBillingAddress(customerId, currentDefaultShipping, currentDefaultBilling, addressSublistForm) {
