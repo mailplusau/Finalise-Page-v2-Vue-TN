@@ -606,18 +606,26 @@ const getOperations = {
 }
 
 const postOperations = {
-    'verifyParameters' : function (response, {customerId, salesRecordId}) {
+    'verifyParameters' : function (response, {customerId, salesRecordId = null} = {}) {
         let {record, runtime} = NS_MODULES;
-        let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId, isDynamic: true});
 
-        if (parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_customer'})) === parseInt(customerId))
-            _writeResponseJson(response, {
-                customerId: parseInt(customerId),
-                salesRecordId: parseInt(salesRecordId),
-                userId: runtime['getCurrentUser']().id,
-                userRole: runtime['getCurrentUser']().role,
-            });
-        else _writeResponseJson(response, {error: `IDs mismatched. Sales record #${salesRecordId} does not belong to customer #${customerId}.`});
+        if (salesRecordId) {
+            let salesRecord = record.load({type: 'customrecord_sales', id: salesRecordId, isDynamic: true});
+
+            if (parseInt(salesRecord.getValue({fieldId: 'custrecord_sales_customer'})) === parseInt(customerId))
+                _writeResponseJson(response, {
+                    customerId: parseInt(customerId),
+                    salesRecordId: parseInt(salesRecordId),
+                    userId: runtime['getCurrentUser']().id,
+                    userRole: runtime['getCurrentUser']().role,
+                });
+            else _writeResponseJson(response, {error: `IDs mismatched. Sales record #${salesRecordId} does not belong to customer #${customerId}.`});
+        } else _writeResponseJson(response, {
+            customerId: parseInt(customerId),
+            salesRecordId: null,
+            userId: runtime['getCurrentUser']().id,
+            userRole: runtime['getCurrentUser']().role,
+        });
     },
     'setAsOutOfTerritory' : function (response, {customerId, salesRecordId}) {
         let {record} = NS_MODULES;

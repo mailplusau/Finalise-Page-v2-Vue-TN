@@ -1,6 +1,28 @@
 <template>
     <b-card border-variant="primary" class="my-3" bg-variant="transparent" v-if="$store.getters['callCenterMode']">
-        <div class="row justify-content-center" v-if="$store.getters['lpo-info/isLPO'] && $store.getters['lpo-info/isLastSalesActivityWithin90Days']">
+        <div class="row justify-content-center" v-if="$store.getters['customer/status'] === 13">
+            <div class="col-12 mb-4">
+                <h1 class="text-center mp-header">Call Center</h1>
+            </div>
+
+            <div class="col-4 mb-3 d-grid">
+                <b-button variant="info" @click="$store.dispatch('call-center/redirectToNetSuiteCustomerPage')">
+                    <b-icon icon="arrow-left-circle"></b-icon> Back
+                </b-button>
+            </div>
+            <div class="col-4 mb-3 d-grid">
+                <b-button variant="info" @click="open('call-center/sendNormalEmail', 'Send Email')">
+                    Send Email
+                </b-button>
+            </div>
+            <div class="col-4 mb-3 d-grid">
+                <b-button variant="primary" @click="open('call-center/setAppointment', 'Set Appointment')">
+                    Set Appointment
+                </b-button>
+            </div>
+        </div>
+
+        <div class="row justify-content-center" v-else-if="$store.getters['lpo-info/isLPO'] && $store.getters['lpo-info/isLastSalesActivityWithin90Days']">
             <div class="col-12 mb-4">
                 <h1 class="text-center mp-header">Call Center</h1>
             </div>

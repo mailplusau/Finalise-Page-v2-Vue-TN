@@ -130,13 +130,13 @@ async function _readAndVerifyUrlParams(context) {
             paramSalesRecordId = weirdParams['sales_record_id'] || null;
         }
 
-        if (!paramCustomerId || !paramSalesRecordId) {
-            context.commit('displayErrorGlobalModal', {title: 'Missing parameters', message: 'Customer ID and/or Sales Record ID missing.'});
+        if (!paramCustomerId) {
+            context.commit('displayErrorGlobalModal', {title: 'Missing parameters', message: 'Customer ID is missing.'});
             return;
         }
 
         let {customerId, salesRecordId, userId, userRole} = await http.post('verifyParameters', {
-            customerId: parseInt(paramCustomerId), salesRecordId: parseInt(paramSalesRecordId)
+            customerId: parseInt(paramCustomerId), salesRecordId: paramSalesRecordId ? parseInt(paramSalesRecordId + '') : null
         });
 
         context.state.userId = userId;
