@@ -24,11 +24,15 @@ const actions = {
         context.commit('displayBusyGlobalModal',
             {title: 'Redirecting...', message: 'Redirecting to Customer Page. Please Wait...', open: true}, {root: true});
 
+        await _createSalesNote(context);
+
         window.location.href = baseURL + '/app/common/entity/custjob.nl?id=' + context.rootGetters['customerId'];
     },
     handleContactMade : async context => {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
+
+        await _createSalesNote(context);
 
         // Change customer status to SUSPECT-In Contact (69)
         await context.dispatch('customer/changeStatus', 69, {root: true});
@@ -39,6 +43,8 @@ const actions = {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
 
+        await _createSalesNote(context);
+
         // Change customer status to PROSPECT-Opportunity (58)
         await context.dispatch('customer/changeStatus', 58, {root: true});
 
@@ -47,6 +53,8 @@ const actions = {
     handleNoAnswerOnPhone : async context => {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing outcome [No Answer - Phone Call]. Please Wait...', open: true}, {root: true});
+
+        await _createSalesNote(context);
 
         if (await _sendCallCenterOutcome(context, 'NO_ANSWER_PHONE'))
             context.dispatch('redirectToNetSuiteCustomerPage').then();
@@ -105,6 +113,8 @@ const actions = {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
 
+        await _createSalesNote(context);
+
         if (await _sendCallCenterOutcome(context, 'NO_ANSWER_EMAIL'))
             context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
@@ -119,6 +129,8 @@ const actions = {
     handleNoResponseEmail : async context => {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
+
+        await _createSalesNote(context);
 
         if (await _sendCallCenterOutcome(context, 'NO_RESPONSE_EMAIL'))
             context.dispatch('redirectToNetSuiteCustomerPage').then();
@@ -142,6 +154,8 @@ const actions = {
     handleNotEstablished : async context => {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
+
+        await _createSalesNote(context);
 
         if (await _sendCallCenterOutcome(context, 'NOT_ESTABLISHED'))
             context.dispatch('redirectToNetSuiteCustomerPage').then();
@@ -178,6 +192,8 @@ const actions = {
     followUp : async context => {
         context.commit('displayBusyGlobalModal',
             {title: 'Processing...', message: 'Processing Sales Outcome. Please Wait...', open: true}, {root: true});
+
+        await _createSalesNote(context);
 
         if (await _sendCallCenterOutcome(context, 'FOLLOW_UP'))
             context.dispatch('redirectToNetSuiteCustomerPage').then();
