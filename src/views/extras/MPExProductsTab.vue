@@ -49,9 +49,9 @@
                 <b-table :items="productPricing" :fields="productPricingColumns" head-row-variant="light" striped show-empty></b-table>
             </div>
             <b-col cols="12" class="mb-4">
-                <b-button variant="primary" @click="goToProductPricing" :disabled="busy" size="sm">
-                    Add/Edit Product Pricing <b-icon icon="box-arrow-up-right" scale=".6"></b-icon>
-                </b-button>
+<!--                <b-button variant="primary" @click="goToProductPricing" :disabled="busy" size="sm">-->
+<!--                    Add/Edit Product Pricing <b-icon icon="box-arrow-up-right" scale=".6"></b-icon>-->
+<!--                </b-button>-->
             </b-col>
         </b-row>
     </b-tab>
