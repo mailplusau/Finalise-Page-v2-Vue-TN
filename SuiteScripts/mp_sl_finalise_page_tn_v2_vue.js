@@ -977,10 +977,11 @@ const postOperations = {
             record.load({type: 'customrecord_commencement_register', id: commRegData.internalid}) :
             record.create({type: 'customrecord_commencement_register'});
 
-        commRegData['custrecord_date_entry'] = new Date(commRegData['custrecord_date_entry']);
-        commRegData['custrecord_comm_date'] = new Date(commRegData['custrecord_comm_date']);
-        commRegData['custrecord_comm_date_signup'] = new Date(commRegData['custrecord_comm_date_signup']);
-        commRegData['custrecord_finalised_on'] = new Date(commRegData['custrecord_finalised_on']);
+        // remove the Z in the ISO string to prevent time shifting due to timezone difference
+        commRegData['custrecord_date_entry'] = new Date((commRegData['custrecord_date_entry'] + '').replace(/[Z,z]/gi, ''));
+        commRegData['custrecord_comm_date'] = new Date((commRegData['custrecord_comm_date'] + '').replace(/[Z,z]/gi, ''));
+        commRegData['custrecord_comm_date_signup'] = new Date((commRegData['custrecord_comm_date_signup'] + '').replace(/[Z,z]/gi, ''));
+        commRegData['custrecord_finalised_on'] = new Date((commRegData['custrecord_finalised_on'] + '').replace(/[Z,z]/gi, ''));
         commRegData['custrecord_salesrep'] = salesRepId;
 
         for (let fieldId in commRegData)
