@@ -587,8 +587,8 @@ const getOperations = {
         NS_MODULES.search.create({
             type: 'file',
             filters: [
-                'name', 'contains', customerId,
-                'folder', 'is', 3819984
+                ['name', 'contains', customerId], 'AND',
+                ['folder', 'is', 3819984]
             ],
             columns: ['name', 'url']
         }).run().each(resultSet => {
@@ -1847,7 +1847,7 @@ function _informFranchiseeOfLostLeadThatTheyEntered(customerRecord, lostReason, 
     })['partner.custentity_sales_rep_assigned'][0].value;
     let emailBody = '';
 
-    emailBody += 'A lead that you entered has been marked as Lost' + '<br><br>';
+    emailBody += 'A lead that you entered has been marked as Lost. ' + '<br><br>';
     emailBody += 'Customer Name: ' + '<a href="' + customerLink + '" target="_blank">' + customerName + '</a>' + '<br>';
     emailBody += 'Lost Reason: ' + lostReason + '<br>'
     emailBody += 'Note from Sales Rep: ' + lostNote +'<br>';
