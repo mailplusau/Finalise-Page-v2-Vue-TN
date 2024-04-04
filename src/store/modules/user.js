@@ -10,6 +10,8 @@ const getters = {
     id : state => state.id,
 
     isMatthew : state => state.id === 1777309,
+
+    isAdmin : state => [3, 1032].includes(state.role)
 };
 
 const mutations = {};

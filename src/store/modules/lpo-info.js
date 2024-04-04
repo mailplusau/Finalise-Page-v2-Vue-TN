@@ -162,6 +162,9 @@ actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
 
     if (!context.getters['isLPO']) return unsavedChanges;
 
+    // Bypass this when user has Admin role
+    if (context.getters['user/isAdmin']) return unsavedChanges;
+
     if (!context.state.form.busy && !context.state.form.disabled) unsavedChanges.push('LPO Information');
     else {
         for (let fieldId of fieldsToCheck)

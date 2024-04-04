@@ -1,5 +1,5 @@
 <template>
-    <b-card border-variant="primary" bg-variant="transparent" class="mt-3">
+    <b-card border-variant="primary" bg-variant="transparent" class="mt-3" v-if="$store.getters['callCenterMode']">
         <div class="row justify-content-center" >
             <div class="col-12">
                 <h1 class="text-center mp-header">Activity Notes</h1>

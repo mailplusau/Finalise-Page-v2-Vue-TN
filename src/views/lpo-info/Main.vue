@@ -1,6 +1,6 @@
 <template>
     <b-card border-variant="primary" bg-variant="transparent" class="mt-3"
-            v-if="$store.getters['lpo-info/isLPO'] && $store.getters['callCenterMode']">
+            v-if="$store.getters['lpo-info/isLPO']">
         <div class="row justify-content-center" >
             <div class="col-12">
                 <h1 class="text-center mp-header">LPO Validation</h1>

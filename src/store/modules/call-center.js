@@ -171,8 +171,12 @@ const actions = {
                 'customdeploy_sl_sales_campaign_popup') + '&sales_record_id=' +
             parseInt(context.rootGetters['salesRecordId']) + '&recid=' + parseInt(context.rootGetters['customerId']);
 
-        // Change customer status to SUSPECT-Reassign (40)
-        await context.dispatch('customer/changeStatus', 40, {root: true});
+        if (context.rootGetters['user/role'] === 1064) // if user is Lead Qualification
+            // Change customer status to PROSPECT-Qualified (70)
+            await context.dispatch('customer/changeStatus', 70, {root: true});
+        else
+            // Change customer status to SUSPECT-Reassign (40)
+            await context.dispatch('customer/changeStatus', 40, {root: true});
 
         window.open(url, "_self",
             "height=300,width=300,modal=yes,alwaysRaised=yes,location=0,toolbar=0");
