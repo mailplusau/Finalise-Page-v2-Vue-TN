@@ -326,6 +326,7 @@ const getOperations = {
 
         search.create({
             id, type,
+            filters: ['isinactive', 'is', false],
             columns: [{name: valueColumnName}, {name: textColumnName}]
         }).run().each(result => {
             data.push({value: result.getValue(valueColumnName), text: result.getValue(textColumnName)});
@@ -602,7 +603,39 @@ const getOperations = {
         });
 
         _writeResponseJson(response, data);
-    }
+    },
+    'checkPortalStatusOfContactEmail' : function (response, {contactId}) {
+        let {record, https} = NS_MODULES;
+        let contactRecord = record.load({type: 'contact', id: contactId});
+        let contactEmail = contactRecord.getValue({fieldId: 'email'});
+        let mainURL = 'https://mpns.protechly.com/outbound_emails?email=' + contactEmail;
+
+        let headers = {};
+        headers['Content-Type'] = 'application/json';
+        headers['Accept'] = 'application/json';
+        headers['x-api-key'] = 'XAZkNK8dVs463EtP7WXWhcUQ0z8Xce47XklzpcBj';
+
+        let res = https.get({
+            url: mainURL,
+            body: null,
+            headers
+        });
+        let emailSubjects;
+
+        try {
+            emailSubjects = JSON.parse(res.body);
+        } catch (e) {
+            return _writeResponseJson(response, {error: `Could not retrieve information for contact email: ${contactEmail}`});
+        }
+
+        let createPasswordEmailSent = Array.isArray(emailSubjects) ?
+            emailSubjects.filter(item => item?.subject.includes('Your MailPlus shipping portal is now ready for you to set up.')).length > 0 : false;
+
+        let accountActivated = Array.isArray(emailSubjects) ?
+            emailSubjects.filter(item => item?.subject.includes('Welcome to your MailPlus Shipping Portal.')).length > 0 : false;
+
+        _writeResponseJson(response, {accountActivated, createPasswordEmailSent});
+    },
 }
 
 const postOperations = {
@@ -850,6 +883,35 @@ const postOperations = {
         NS_MODULES.record['submitFields']({type: 'customrecord_sales', id: salesRecordId, values: {'custrecord_sales_assigned': 1809334}});
 
         _writeResponseJson(response, 'Sales Record re-assigned.');
+    },
+    'resendCreatePortalPasswordEmail' : function (response, {customerId, contactId}) {
+        let {record, task, log} = NS_MODULES;
+
+        let contactRecord = record.load({
+            type: record.Type.CONTACT,
+            id: contactId,
+        });
+
+        let params = {
+            custscript_cust_internal_id: parseInt(customerId),
+            custscript_contact_internal_id: parseInt(contactId),
+            custscript_contact_fname: contactRecord.getValue({fieldId: 'firstname'}),
+            custscript_conatct_lname: contactRecord.getValue({fieldId: 'lastname'}),
+            custscript_contact_email: contactRecord.getValue({fieldId: 'email'}),
+            custscript_contact_phone: contactRecord.getValue({fieldId: 'phone'}),
+        };
+
+        try {
+            let scriptTask = task.create({
+                taskType: task.TaskType['SCHEDULED_SCRIPT'],
+                scriptId: 'customscript_ss_send_portal_password_ema',
+                deploymentId: 'customdeploy1',
+                params
+            });
+            scriptTask.submit();
+        } catch (e) { log.debug({title: 'resendCreatePortalPasswordEmail', details: `${e}`}); }
+
+        _writeResponseJson(response, 'Email sent!');
     },
     'notifyITTeam' : function (response, {customerId, salesRecordId}) {
         let {record, search, email} = NS_MODULES;

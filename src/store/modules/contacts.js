@@ -107,6 +107,24 @@ const actions = {
 
         context.state.contactFormBusy = false;
     },
+    resendCreatePortalPasswordEmail : async (context, contactId) => {
+        context.state.contactFormBusy = true;
+
+        context.commit('displayBusyGlobalModal',
+            {title: 'Processing...', message: 'Re-sending Create Portal Password email. Please Wait...', open: true}, {root: true});
+
+        await http.post('resendCreatePortalPasswordEmail', {
+            customerId: context.rootGetters['customerId'], contactId
+        });
+
+        await _loadContacts(context);
+
+        context.commit('displayInfoGlobalModal', {title: 'Complete', message: 'The Create Portal Password email will be sent out shortly.', open: true}, {root: true})
+
+        context.state.contactFormBusy = false;
+
+        context.state.contactModal = false;
+    }
 }
 
 /** -- Fields in customsearch_salesp_contacts saved search --
@@ -134,6 +152,12 @@ async function _loadContacts(context) {
     });
 
     context.state.contacts = [...data];
+
+    await Promise.allSettled(context.state.contacts.map(async contact => {
+        let {accountActivated, createPasswordEmailSent} = await http.get('checkPortalStatusOfContactEmail', {contactId: contact.internalid});
+        contact.accountActivated = accountActivated;
+        contact.createPasswordEmailSent = createPasswordEmailSent;
+    }))
 }
 
 function _checkForAdminPortalRoles(context) {

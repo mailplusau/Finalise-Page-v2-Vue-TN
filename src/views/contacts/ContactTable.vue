@@ -39,6 +39,18 @@
                             :variant="parseInt(item.custentity_connect_user) === 1 ? 'success' : 'danger'"></b-icon>
                 </template>
 
+                <template v-slot:cell(emailSent)="{item}">
+                    <b-icon v-if="item.createPasswordEmailSent" icon="check-lg" variant="success"></b-icon>
+                    <b-icon v-else icon="x-square" variant="danger" style="cursor: pointer;" scale="1.5"
+                            title="Re-send Create Portal Password Email" v-b-tooltip.hover
+                            @click="$store.dispatch('contacts/resendCreatePortalPasswordEmail', item.internalid)"></b-icon>
+                </template>
+
+                <template v-slot:cell(portal)="{item}">
+                    <b-icon v-if="item.accountActivated" icon="check-lg" variant="success"></b-icon>
+                    <b-icon v-else icon="x-lg" variant="danger"></b-icon>
+                </template>
+
                 <template v-slot:cell(actions)="{item, detailsShowing, toggleDetails}">
                     <div class="text-end">
 
@@ -112,6 +124,8 @@ export default {
             {key: 'role', label: 'Role'},
             {key: 'admin', label: 'Portal Admin'},
             {key: 'user', label: 'Portal User'},
+            {key: 'emailSent', label: 'Create Password Email Sent'},
+            {key: 'portal', label: 'Portal Activated'},
             {key: 'actions', label: ''},
         ],
         internalIdToDelete: null,

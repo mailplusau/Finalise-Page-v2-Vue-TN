@@ -1,5 +1,5 @@
 <template>
-    <div class="col-lg-6 col-12">
+    <div class="col-lg-5 col-12">
 
         <h1 class="text-center mp-header">Addresses</h1>
 
