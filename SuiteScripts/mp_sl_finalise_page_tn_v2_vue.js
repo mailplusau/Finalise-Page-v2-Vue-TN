@@ -833,7 +833,8 @@ const postOperations = {
             let phoneCallRecord = record.create({ type: record.Type['PHONE_CALL'], isDynamic: true });
             phoneCallRecord.setValue({fieldId: 'assigned', value: customerRecord.getValue({fieldId: 'partner'})});
             phoneCallRecord.setValue({fieldId: 'custevent_organiser', value: userId});
-            phoneCallRecord.setValue({fieldId: 'startdate', value: localTime});
+            phoneCallRecord.setValue({fieldId: 'startdate', value: new Date()});
+            phoneCallRecord.setValue({fieldId: 'enddate', value: new Date()});
             phoneCallRecord.setValue({fieldId: 'company', value: customerId});
             phoneCallRecord.setText({fieldId: 'status', text: 'Completed'});
             phoneCallRecord.setValue({fieldId: 'custevent_call_type', value: 2}); // Sales Pitch
