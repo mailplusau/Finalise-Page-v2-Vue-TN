@@ -224,7 +224,18 @@ const actions = {
         await _createSalesNote(context);
 
         _goToSendEmailModule(context, {sendEmail: 'T'}, true);
-    }
+    },
+    requestGiftBox : async context => {
+        context.commit('displayBusyGlobalModal',
+            {title: 'Processing...', message: 'Sending request for gift box. Please Wait...', open: true}, {root: true});
+
+        await _createSalesNote(context);
+
+        let res = await http.post('sendGiftBoxRequest', {customerId: context.rootGetters['customerId']});
+
+        context.commit('displayInfoGlobalModal',
+            {title: 'Complete', message: `${res}`, open: true}, {root: true});
+    },
 };
 
 function _goToSendEmailModule(context, extraParams, useNewModule = false) {

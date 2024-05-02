@@ -196,38 +196,9 @@ const getOperations = {
         _writeResponseJson(response, sharedFunctions.getCustomerData(customerId, fieldIds));
     },
     'getCustomerAddresses' : function (response, {customerId}) {
-        let {record} = NS_MODULES;
-        let data = [];
-        let fieldIds = ['addr1', 'addr2', 'city', 'state', 'zip', 'country', 'addressee', 'custrecord_address_lat', 'custrecord_address_lon', 'custrecord_address_ncl'];
-        let sublistFieldIds = ['internalid', 'label', 'defaultshipping', 'defaultbilling', 'isresidential'];
-
         if (!customerId) return _writeResponseJson(response, {error: `Invalid Customer ID: ${customerId}`});
 
-        let customerRecord = record.load({
-            type: record.Type.CUSTOMER,
-            id: customerId,
-            isDynamic: true
-        });
-
-        let lineCount = customerRecord.getLineCount({sublistId: 'addressbook'});
-
-        for (let line = 0; line < lineCount; line++) {
-            customerRecord.selectLine({sublistId: 'addressbook', line});
-            let entry = {};
-
-            for (let fieldId of sublistFieldIds) {
-                entry[fieldId] = customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId})
-            }
-
-            let addressSubrecord = customerRecord.getCurrentSublistSubrecord({sublistId: 'addressbook', fieldId: 'addressbookaddress'});
-            for (let fieldId of fieldIds) {
-                entry[fieldId] = addressSubrecord.getValue({ fieldId })
-            }
-
-            data.push(entry);
-        }
-
-        _writeResponseJson(response, data);
+        _writeResponseJson(response, sharedFunctions.getCustomerAddresses(customerId));
     },
     'getCustomerContacts' : function (response, {customerId}) {
         if (!customerId) return _writeResponseJson(response, {error: `Invalid Customer ID: ${customerId}`});
@@ -914,6 +885,35 @@ const postOperations = {
 
         _writeResponseJson(response, 'Email sent!');
     },
+    'sendGiftBoxRequest' : function (response, {customerId}) {
+        let contact = sharedFunctions.getCustomerContacts(customerId).filter(item => parseInt(item['contactrole']) === -10)[0]; // Primary Contact
+        let address = sharedFunctions.getCustomerAddresses(customerId).filter(item => item['label'] === 'Site Address')[0];
+
+        if (!contact) return _writeResponseJson(response, {error: `Customer ${customerId} has no Primary Contact`});
+        if (!address) return _writeResponseJson(response, {error: `Customer ${customerId} has no Site Address`});
+
+        let customerRecord = NS_MODULES.record.load({type: 'customer', id: customerId});
+        let entityId = customerRecord.getValue({fieldId: 'entityid'});
+        let companyName = customerRecord.getValue({fieldId: 'companyname'});
+
+        let emailBody = `Customer Internal ID: ${customerId} </br>`;
+        emailBody += `Customer Name: ${entityId} ${companyName}</br>`;
+        emailBody += `Franchisee: ${customerRecord['getText']({fieldId: 'partner'})}</br>`;
+        emailBody += `Address: ${address.addr1} ${address.addr2}, ${address.city} ${address.state} ${address.zip}</br>`;
+        emailBody += `Contact: ${contact.firstname} ${contact.lastname} (${contact.phone} - ${contact.email})</br>`;
+
+        NS_MODULES.email.send({
+            author: 112209,
+            subject: 'Gift Box Required - ' + entityId + ' ' + companyName,
+            body: emailBody,
+            recipients: ['alexandra.bathman@mailplus.com.au', 'maddilon.campos@mailplus.com.au'],
+            relatedRecords: {
+                'entityId': customerId
+            },
+        });
+
+        _writeResponseJson(response, 'Email requesting for gift box has been sent!');
+    },
     'notifyITTeam' : function (response, {customerId, salesRecordId}) {
         let {record, search, email} = NS_MODULES;
 
@@ -1162,6 +1162,38 @@ const sharedFunctions = {
         for (let fieldId of fieldIds) {
             data[fieldId] = customerRecord.getValue({fieldId});
             data[fieldId + '_text'] = customerRecord.getText({fieldId});
+        }
+
+        return data;
+    },
+    getCustomerAddresses(customerId) {
+        let {record} = NS_MODULES;
+        let data = [];
+        let fieldIds = ['addr1', 'addr2', 'city', 'state', 'zip', 'country', 'addressee', 'custrecord_address_lat', 'custrecord_address_lon', 'custrecord_address_ncl'];
+        let sublistFieldIds = ['internalid', 'label', 'defaultshipping', 'defaultbilling', 'isresidential'];
+
+        let customerRecord = record.load({
+            type: record.Type.CUSTOMER,
+            id: customerId,
+            isDynamic: true
+        });
+
+        let lineCount = customerRecord.getLineCount({sublistId: 'addressbook'});
+
+        for (let line = 0; line < lineCount; line++) {
+            customerRecord.selectLine({sublistId: 'addressbook', line});
+            let entry = {};
+
+            for (let fieldId of sublistFieldIds) {
+                entry[fieldId] = customerRecord.getCurrentSublistValue({sublistId: 'addressbook', fieldId})
+            }
+
+            let addressSubrecord = customerRecord.getCurrentSublistSubrecord({sublistId: 'addressbook', fieldId: 'addressbookaddress'});
+            for (let fieldId of fieldIds) {
+                entry[fieldId] = addressSubrecord.getValue({ fieldId })
+            }
+
+            data.push(entry);
         }
 
         return data;
@@ -1613,7 +1645,8 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId) {
         email_body += '</br>Phone: ' + contact['phone'];
 
         customerRecord.setValue({fieldId: 'custentity_portal_access', value: 1});
-        customerRecord.setValue({fieldId: 'custentity_portal_how_to_guides', value: 2});
+        if (!customerRecord.getValue({fieldId: 'custentity_portal_how_to_guides'}))
+            customerRecord.setValue({fieldId: 'custentity_portal_how_to_guides', value: 2});
         customerRecord.save({ignoreMandatoryFields: true});
 
         let userJSON = '{';

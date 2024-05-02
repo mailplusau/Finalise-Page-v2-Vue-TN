@@ -20,6 +20,12 @@
                     Set Appointment
                 </b-button>
             </div>
+
+            <div class="col-6 mb-3 d-grid" v-if="$store.getters['sales-record/isMpPremium']">
+                <b-button variant="primary" @click="open('call-center/requestGiftBox', 'Gift Box Required')">
+                    Gift Box Required
+                </b-button>
+            </div>
         </div>
 
         <div class="row justify-content-center" v-else-if="$store.getters['lpo-info/isLPO'] && $store.getters['lpo-info/isLastSalesActivityWithin90Days']">

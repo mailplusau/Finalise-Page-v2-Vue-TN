@@ -69,6 +69,7 @@ const actions = {
 
         context.dispatch('user/init').then();
         context.dispatch('customer/init').then();
+        context.dispatch('sales-record/init').then();
         context.dispatch('lpo-info/init').then();
         context.dispatch('addresses/init').then();
         context.dispatch('contacts/init').then();

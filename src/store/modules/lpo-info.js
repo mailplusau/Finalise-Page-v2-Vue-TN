@@ -2,10 +2,6 @@ import http from "@/utils/http";
 import {ACTION_CHECK_FOR_UNSAVED_CHANGES} from '@/utils/utils';
 
 const state = {
-    salesRecord: {
-        internalid: null,
-        custrecord_sales_campaign: null,
-    },
     customer: {
         custentity_lpo_parent_account: null, // Parent Customer
         companyname: '',
@@ -71,7 +67,7 @@ const getters = {
             .findIndex(item => parseInt(item.custentity_lpo_linked_franchisees) === parseInt(rootGetters['customer/details'].partner))
 
         // Franchisee is linked to LPO and campaign in sales record set as LPO (69)
-        return index >= 0 && parseInt(state.salesRecord.custrecord_sales_campaign) === 69;
+        return index >= 0 && parseInt(rootGetters['sales-record/data'].custrecord_sales_campaign) === 69;
     },
     isLastSalesActivityWithin90Days : state => { // check if last sales activity is set within the last 90 days
         if (!state.customer.custentity_lpo_date_last_sales_activity) return false;
@@ -113,7 +109,6 @@ const actions = {
             return;
 
         await _getFranchisees(context);
-        await _checkLPOCampaign(context);
         await _getCustomerDetails(context);
     },
     saveLPOInfo : async context => {
@@ -181,15 +176,6 @@ actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
     return unsavedChanges;
 }
 
-async function _checkLPOCampaign(context) {
-    let fieldIds = [];
-    for (let fieldId in context.state.salesRecord) fieldIds.push(fieldId);
-
-    context.state.salesRecord = await http.get('getSalesRecord', {
-        salesRecordId: context.rootGetters['salesRecordId'], fieldIds
-    });
-}
-
 async function _getFranchisees(context) {
     context.state.franchisees = await http.get('getFranchiseesOfLPOProject');
 }
@@ -241,7 +227,7 @@ async function _saveCustomerDetails(context) {
         fieldIds,
     });
 
-    // After saving customer, check if Parent LPO is set for the first time, if yes then re-assign Sales Record to Gabby
+    // After saving customer, check if Parent LPO is set for the first time, if yes then re-assign Sales Record to an employee
     if (parseInt(customerData['custentity_lpo_parent_account']) !== parseInt(context.state.customer.custentity_lpo_parent_account)
         && !context.state.customer.custentity_lpo_parent_account)
         await _reassignSalesRecordToEmployee(context)
