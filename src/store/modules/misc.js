@@ -39,6 +39,7 @@ const state = {
         {value: 2, text: 'Inactive'},
     ],
     parkingLotReasons: [],
+    productPricePoints: [],
 };
 
 const getters = {
@@ -59,6 +60,7 @@ const getters = {
     inOutOptions : state => state.inOutOptions,
     accountManagers : state => state.accountManagers,
     parkingLotReasons : state => state.parkingLotReasons,
+    productPricePoints : state => state.productPricePoints,
 };
 
 const mutations = {};
@@ -79,6 +81,7 @@ const actions = {
         context.dispatch('getInOutOptions').then();
         context.dispatch('getCarrierList').then();
         context.dispatch('getParkingLotReasons').then();
+        context.dispatch('getProductPricePoints').then();
     },
     getIndustries : async (context) => {
         await _fetchDataForHtmlSelect(context, context.state.industries,
@@ -127,6 +130,10 @@ const actions = {
     getParkingLotReasons : async context => {
         await _fetchDataForHtmlSelect(context, context.state.parkingLotReasons,
             null, 'customlist_parking_lot_reasons', 'internalId', 'name');
+    },
+    getProductPricePoints : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.productPricePoints,
+            null, 'customlist_mpex_price_points', 'internalId', 'name');
     },
 };
 
