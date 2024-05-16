@@ -1426,7 +1426,7 @@ const handleCallCenterOutcomes = {
         _createUserNote(customerId, 'Lead Lost - No Response - Potentially Bad Record', salesNote);
     },
     'NO_ANSWER_PHONE': ({userId, customerRecord, salesRecord, salesCampaignRecord, phoneCallRecord, salesNote, localTime}) => {
-        _changeCustomerStatusIfNotSigned(customerRecord, 20); // SUSPECT-No Answer
+        _changeStatusIfNotCustomer(customerRecord, 20); // SUSPECT-No Answer
         if (parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'})) === 55) { // AusPost GPO List - Cleanse
             phoneCallRecord.setValue({fieldId: 'title', value: 'Prospecting Call - GPO - No Answer'});
         } else {
@@ -1464,7 +1464,7 @@ const handleCallCenterOutcomes = {
         // let salesCampaignType = parseInt(salesCampaignRecord.getValue({fieldId: 'custrecord_salescampaign_recordtype'}));
         let salesCampaignId = parseInt(salesCampaignRecord.getValue({fieldId: 'internalid'}));
 
-        _changeCustomerStatusIfNotSigned(customerRecord, 20); // SUSPECT-No Answer
+        _changeStatusIfNotCustomer(customerRecord, 20); // SUSPECT-No Answer
 
         phoneCallRecord.setValue({fieldId: 'message', value: salesNote});
         phoneCallRecord.setValue({fieldId: 'custevent_call_outcome', value: 6}); // No Contact
@@ -1904,13 +1904,18 @@ function _changeCustomerStatusIfNotSigned(customerRecord, newStatus) {
         customerRecord.setValue({fieldId: 'entitystatus', value: newStatus});
 }
 
+function _changeStatusIfNotCustomer(customerRecord, newStatus) {
+    if ([13, 32].includes(parseInt(customerRecord.getValue({fieldId: 'entitystatus'})))) return;
+
+    customerRecord.setValue({fieldId: 'entitystatus', value: newStatus});
+}
+
 function _parseIsoDatetime(dateString) {
     let dt = dateString.split(/[: T-]/).map(parseFloat);
     return new Date(dt[0], dt[1] - 1, dt[2], dt[3] || 0, dt[4] || 0, dt[5] || 0, 0);
 }
 
 function _parseISODate(dateString) {
-    // TODO: type check maybe?
     let dt = dateString.split(/[: T-]/).map(parseFloat);
     return new Date(dt[0], dt[1] - 1, dt[2]);
 }
@@ -1936,6 +1941,7 @@ function _getTodayDateObjectForDateField() {
 function _informFranchiseeOfLostLeadThatTheyEntered(customerRecord, lostReason, lostNote) {
     let customerId = customerRecord.getValue({fieldId: 'id'});
     let customerName = customerRecord.getValue({fieldId: 'entityid'}) + ' ' + customerRecord.getValue({fieldId: 'companyname'});
+    let customerStatus = parseInt(customerRecord.getValue({fieldId: 'entitystatus'}));
     let partnerRecord = NS_MODULES.record.load({type: 'partner', id: customerRecord.getValue({fieldId: 'partner'})});
     let customerLink = 'https://1048144.app.netsuite.com/app/common/entity/custjob.nl?id=' + customerId;
     let salesRepId = NS_MODULES.search['lookupFields']({
@@ -1951,7 +1957,7 @@ function _informFranchiseeOfLostLeadThatTheyEntered(customerRecord, lostReason, 
     emailBody += 'Note from Sales Rep: ' + lostNote +'<br>';
 
     NS_MODULES.email.send({
-        author: salesRepId, // Associated sales rep
+        author: customerStatus === 13 ? salesRepId : NS_MODULES.runtime['getCurrentUser']().id, // Associated sales rep
         subject: 'Lost Lead',
         body: emailBody,
         recipients: [partnerRecord.getValue({fieldId: 'email'})], // Associated franchisee

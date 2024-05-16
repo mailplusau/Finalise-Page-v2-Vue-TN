@@ -35,7 +35,8 @@ const actions = {
         await _createSalesNote(context);
 
         // Change customer status to SUSPECT-In Contact (69)
-        await context.dispatch('customer/changeStatus', 69, {root: true});
+        if (![13, 32].includes(parseInt(context.rootGetters['customer/status'])))
+            await context.dispatch('customer/changeStatus', 69, {root: true});
 
         context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
