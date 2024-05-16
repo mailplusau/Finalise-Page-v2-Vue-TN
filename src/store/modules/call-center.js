@@ -35,7 +35,8 @@ const actions = {
         await _createSalesNote(context);
 
         // Change customer status to SUSPECT-In Contact (69)
-        await context.dispatch('customer/changeStatus', 69, {root: true});
+        if (![13, 32, 71].includes(parseInt(context.rootGetters['customer/status'])))
+            await context.dispatch('customer/changeStatus', 69, {root: true});
 
         context.dispatch('redirectToNetSuiteCustomerPage').then();
     },
@@ -64,7 +65,7 @@ const actions = {
         if (!_areAddressesGeocoded(context) || !_checkEmailsNotEmptyOrDefaulted(context) || !_checkABNNotEmpty(context)) return;
 
         context.commit('displayBusyGlobalModal',
-            {title: 'Processing...', message: 'Setting Customer as Free Trial. Please Wait...', open: true}, {root: true});
+            {title: 'Processing...', message: 'Setting Customer as Free Trial. Redirecting...', open: true}, {root: true});
 
         await _createSalesNote(context);
 

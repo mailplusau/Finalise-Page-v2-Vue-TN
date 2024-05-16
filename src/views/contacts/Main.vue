@@ -15,7 +15,7 @@
                 </div>
                 <div class="col-6 mb-3">
                     <b-input-group prepend="First name">
-                        <b-form-input v-model="contactForm.firstname" v-validate="'required'" data-vv-name="firstname"
+                        <b-form-input v-model="contactForm.firstname" v-validate="'required|max:32'" data-vv-name="firstname"
                                       :class="errors.has('firstname') ? 'is-invalid' : ''" :disabled="contactFormBusy"></b-form-input>
 
                         <b-form-invalid-feedback :state="!errors.has('firstname')">{{ errors.first('firstname') }}</b-form-invalid-feedback>
@@ -23,7 +23,7 @@
                 </div>
                 <div class="col-6 mb-3">
                     <b-input-group prepend="Last name">
-                        <b-form-input v-model="contactForm.lastname" v-validate="'required'" data-vv-name="lastname"
+                        <b-form-input v-model="contactForm.lastname" v-validate="'required|max:32'" data-vv-name="lastname"
                                       :class="errors.has('lastname') ? 'is-invalid' : ''" :disabled="contactFormBusy"></b-form-input>
 
                         <b-form-invalid-feedback :state="!errors.has('lastname')">{{ errors.first('lastname') }}</b-form-invalid-feedback>
