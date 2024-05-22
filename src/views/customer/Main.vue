@@ -121,6 +121,27 @@
                 </b-input-group>
             </div>
 
+            <div class="col-6 mb-4">
+                <b-input-group prepend="T&C Agreement - Date">
+                    <b-form-datepicker v-model="tcAgreementDate" :disabled="formDisabled" value-as-date></b-form-datepicker>
+
+                    <b-input-group-append>
+                        <b-button v-if="tcAgreementDate && !formDisabled" variant="outline-danger" @click="tcAgreementDate = null" title="Clear date"
+                                  :disabled="formDisabled"><b-icon icon="trash"></b-icon></b-button>
+                    </b-input-group-append>
+                </b-input-group>
+            </div>
+            <div class="col-6 mb-4">
+                <b-input-group prepend="Franchisee Visit - Date">
+                    <b-form-datepicker v-model="franchiseeVisitDate" :disabled="formDisabled" value-as-date></b-form-datepicker>
+
+                    <b-input-group-append>
+                        <b-button v-if="franchiseeVisitDate && !formDisabled" variant="outline-danger" @click="franchiseeVisitDate = null" title="Clear date"
+                                  :disabled="formDisabled"><b-icon icon="trash"></b-icon></b-button>
+                    </b-input-group-append>
+                </b-input-group>
+            </div>
+
             <div class="col-12" v-if="hasInternalId">
                 <b-button @click="editForm" v-if="formDisabled" size="sm" :disabled="busy" variant="outline-primary">Edit Customer's Details</b-button>
                 <template v-else>
@@ -149,7 +170,6 @@ export default {
     }),
     created() {
         this.debouncedHandleOldCustomerIdChanged = debounce(async (newValue, oldValue) => {
-            console.log("value changed: ", newValue, oldValue);
             if (!await this.$validator.validateAll(['old_customer_id'])) return;
 
             this.oldCustomerIdFieldDisabled = true;
@@ -199,6 +219,24 @@ export default {
         busy() {
             return this.$store.getters['customer/busy'];
         },
+        tcAgreementDate: {
+            get() {
+                return this.detailForm.custentity_terms_conditions_agree_date;
+            },
+            set(val) {
+                this.detailForm.custentity_terms_conditions_agree_date = val;
+                this.detailForm.custentity_terms_conditions_agree = val ? 1 : 2;
+            }
+        },
+        franchiseeVisitDate: {
+            get() {
+                return this.detailForm.custentity_mp_toll_zeevisit_memo;
+            },
+            set(val) {
+                this.detailForm.custentity_mp_toll_zeevisit_memo = val;
+                this.detailForm.custentity_mp_toll_zeevisit = !!val;
+            }
+        }
     },
     watch: {
         'detailForm.custentity_old_customer': function (...args) {

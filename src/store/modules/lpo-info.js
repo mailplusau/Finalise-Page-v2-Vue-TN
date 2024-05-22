@@ -22,6 +22,9 @@ const state = {
         custentity_lpo_profile_assigned: '', //
         custentity_lpo_lead_priority: '',
         custentity_lpo_account_type_linked: '',
+
+        custentity_lpo_comms_to_customer: '',
+        custentity_cust_lpo_pre_auth: '',
     },
     franchisees: [],
 
@@ -153,7 +156,9 @@ const actions = {
 
 actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
     let unsavedChanges = [];
-    let fieldsToCheck = ['custentity_lpo_account_status'];
+    let fieldsToCheck = [
+        {id: 'custentity_lpo_account_status', name: 'Account Status'}
+    ];
 
     if (!context.getters['isLPO']) return unsavedChanges;
 
@@ -162,10 +167,10 @@ actions[ACTION_CHECK_FOR_UNSAVED_CHANGES] = context => {
 
     if (!context.state.form.busy && !context.state.form.disabled) unsavedChanges.push('LPO Information');
     else {
-        for (let fieldId of fieldsToCheck)
-            if (!context.state.customer[fieldId]) {
+        for (let field of fieldsToCheck)
+            if (!context.state.customer[field.id]) {
                 context.state.form.disabled = false;
-                unsavedChanges.push('LPO Information: One or more required fields are empty.');
+                unsavedChanges.push(`LPO Information: The field [${field.name}] is empty.`);
                 break;
             }
     }

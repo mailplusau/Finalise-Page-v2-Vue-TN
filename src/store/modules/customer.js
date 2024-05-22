@@ -36,6 +36,11 @@ const state = {
         custentity_maap_bankacctno_parent: null,
 
         custentity_cancel_ongoing: '',
+
+        custentity_terms_conditions_agree_date: '', // t&c agreement date
+        custentity_terms_conditions_agree: '', // 1: yes, 2: no
+        custentity_mp_toll_zeevisit_memo: '', // franchisee visit date
+        custentity_mp_toll_zeevisit: false,
     },
     texts: {},
     detailForm: {},
@@ -165,11 +170,12 @@ let actions = {
         for (let fieldId in context.state.details) fieldIds.push(fieldId);
 
         try {
-            let customerData = JSON.parse(JSON.stringify(context.state.detailForm));
+            _addTimezoneOffset(context.state.detailForm.custentity_terms_conditions_agree_date);
+            _addTimezoneOffset(context.state.detailForm.custentity_mp_toll_zeevisit_memo);
 
             let data = await http.post('saveCustomerDetails', {
                 customerId: context.rootGetters['customerId'],
-                customerData,
+                customerData: context.state.detailForm,
                 fieldIds,
             });
 
@@ -245,6 +251,13 @@ function _updateFormTitleAndHeader(context) {
 
     document.querySelector('h1.uir-record-type').innerHTML = header;
     document.title = title;
+}
+
+function _addTimezoneOffset(dateObj) {
+    if (Object.prototype.toString.call(dateObj) === '[object Date]')
+        dateObj.setTime(dateObj.getTime() + ((new Date()).getTimezoneOffset()/-60)*60*60*1000);
+
+    return dateObj;
 }
 
 export default {

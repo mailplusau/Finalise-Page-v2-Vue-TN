@@ -523,7 +523,7 @@ const getOperations = {
     },
     'getFranchiseesOfLPOProject' : function (response) {
         let data = [];
-        NS_MODULES.search.create({
+        NS_MODULES.search.create({ // customsearch_parent_lpo_customers
             type: "customer",
             filters:
                 [
@@ -532,8 +532,8 @@ const getOperations = {
                     ["companyname","contains","LPO - Parent"],
                     "AND",
                     ["parentcustomer.internalid","anyof","@NONE@"],
-                    "AND",
-                    ["leadsource","anyof","281559"]
+                    // "AND",
+                    // ["leadsource","anyof","281559"]
                 ],
             columns: ['internalid', 'entityid', 'companyname', 'custentity_lpo_linked_franchisees']
         }).run().each(result => {
@@ -661,8 +661,15 @@ const postOperations = {
             isDynamic: true
         });
 
-        for (let fieldId in customerData)
-            customerRecord.setValue({fieldId, value: isoStringRegex.test(customerData[fieldId]) ? new Date(customerData[fieldId]) : customerData[fieldId]});
+        for (let fieldId in customerData) {
+            let value = customerData[fieldId];
+            if (isoStringRegex.test(customerData[fieldId]) && customerRecord['getField']({fieldId})?.type === 'date')
+                value = new Date(customerData[fieldId].replace(/[Z,z]/gi, ''));
+            else if (isoStringRegex.test(customerData[fieldId]) && customerRecord['getField']({fieldId})?.type === 'datetimetz')
+                value = new Date(customerData[fieldId].replace(/[Z,z]/gi, ''));
+
+            customerRecord.setValue({fieldId, value});
+        }
 
         customerRecord.save({ignoreMandatoryFields: true});
 
@@ -1679,20 +1686,20 @@ function _sendEmailsAfterSavingCommencementRegister(userId, customerId) {
         taskRecord.setText({fieldId: 'status', text: 'Not Started'});
         taskRecord.save({ignoreMandatoryFields: true});
 
-        email.sendBulk({
-            author: runtime.getCurrentUser().role === 1032 ? 112209 : userId,
-            body: email_body,
-            subject: 'New Customer Finalised - Portal Access Required',
-            recipients: ['laura.busse@mailplus.com.au'],
-            cc: ['popie.popie@mailplus.com.au',
-                'ankith.ravindran@mailplus.com.au',
-                'fiona.harrison@mailplus.com.au'
-            ],
-            relatedRecords: {
-                'entityId': customerId
-            },
-            isInternalOnly: true
-        });
+        // email.sendBulk({
+        //     author: runtime.getCurrentUser().role === 1032 ? 112209 : userId,
+        //     body: email_body,
+        //     subject: 'New Customer Finalised - Portal Access Required',
+        //     recipients: ['laura.busse@mailplus.com.au'],
+        //     cc: ['popie.popie@mailplus.com.au',
+        //         'ankith.ravindran@mailplus.com.au',
+        //         'fiona.harrison@mailplus.com.au'
+        //     ],
+        //     relatedRecords: {
+        //         'entityId': customerId
+        //     },
+        //     isInternalOnly: true
+        // });
     }
 
     email.sendBulk({
@@ -1908,16 +1915,6 @@ function _changeStatusIfNotCustomer(customerRecord, newStatus) {
     if ([13, 32, 71].includes(parseInt(customerRecord.getValue({fieldId: 'entitystatus'})))) return;
 
     customerRecord.setValue({fieldId: 'entitystatus', value: newStatus});
-}
-
-function _parseIsoDatetime(dateString) {
-    let dt = dateString.split(/[: T-]/).map(parseFloat);
-    return new Date(dt[0], dt[1] - 1, dt[2], dt[3] || 0, dt[4] || 0, dt[5] || 0, 0);
-}
-
-function _parseISODate(dateString) {
-    let dt = dateString.split(/[: T-]/).map(parseFloat);
-    return new Date(dt[0], dt[1] - 1, dt[2]);
 }
 
 function _getLocalTimeFromOffset(localUTCOffset) {

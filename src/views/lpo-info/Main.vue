@@ -99,6 +99,29 @@
                 </b-input-group>
             </div>
 
+            <div class="col-6 mb-4">
+                <b-input-group prepend="LPO Comms To Customer">
+                    <b-form-select :options="$store.getters['misc/yesNoOptions']"
+                                   v-model="form.custentity_lpo_comms_to_customer"
+                                   :disabled="formDisabled"
+                                   v-validate="''" data-vv-name="comms_to_customer"
+                                   :class="errors.has('comms_to_customer') ? 'is-invalid' : ''"></b-form-select>
+
+                    <b-form-invalid-feedback :state="!errors.has('comms_to_customer')">{{ errors.first('comms_to_customer') }}</b-form-invalid-feedback>
+                </b-input-group>
+            </div>
+            <div class="col-6 mb-4">
+                <b-input-group prepend="Pre-authorization">
+                    <b-form-select :options="$store.getters['misc/lpoPreAuthOptions']"
+                                   v-model="form.custentity_cust_lpo_pre_auth"
+                                   :disabled="formDisabled"
+                                   v-validate="''" data-vv-name="pre_auth"
+                                   :class="errors.has('pre_auth') ? 'is-invalid' : ''"></b-form-select>
+
+                    <b-form-invalid-feedback :state="!errors.has('pre_auth')">{{ errors.first('pre_auth') }}</b-form-invalid-feedback>
+                </b-input-group>
+            </div>
+
             <div class="col-12 mb-4">
                 <b-input-group prepend="Date of Last Sale Activity">
                     <b-form-datepicker v-model="form.custentity_lpo_date_last_sales_activity" value-as-date

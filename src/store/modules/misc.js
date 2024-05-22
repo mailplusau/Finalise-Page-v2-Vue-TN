@@ -40,6 +40,7 @@ const state = {
     ],
     parkingLotReasons: [],
     productPricePoints: [],
+    lpoPreAuthOptions: [],
 };
 
 const getters = {
@@ -61,6 +62,7 @@ const getters = {
     accountManagers : state => state.accountManagers,
     parkingLotReasons : state => state.parkingLotReasons,
     productPricePoints : state => state.productPricePoints,
+    lpoPreAuthOptions : state => state.lpoPreAuthOptions,
 };
 
 const mutations = {};
@@ -82,6 +84,7 @@ const actions = {
         context.dispatch('getCarrierList').then();
         context.dispatch('getParkingLotReasons').then();
         context.dispatch('getProductPricePoints').then();
+        context.dispatch('getLpoPreAuthOptions').then();
     },
     getIndustries : async (context) => {
         await _fetchDataForHtmlSelect(context, context.state.industries,
@@ -105,7 +108,7 @@ const actions = {
     },
     getYesNoOptions : async context => {
         await _fetchDataForHtmlSelect(context, context.state.yesNoOptions,
-            null, 'customlist107_2', 'internalId', 'name');
+            null, 'customlist107', 'internalId', 'name');
     },
     getMPExWeeklyUsageOptions : async context => {
         await _fetchDataForHtmlSelect(context, context.state.mpExWeeklyUsageOptions,
@@ -134,6 +137,10 @@ const actions = {
     getProductPricePoints : async context => {
         await _fetchDataForHtmlSelect(context, context.state.productPricePoints,
             null, 'customlist_mpex_price_points', 'internalId', 'name');
+    },
+    getLpoPreAuthOptions : async context => {
+        await _fetchDataForHtmlSelect(context, context.state.lpoPreAuthOptions,
+            null, 'customlist_lpo_pre_auth', 'internalId', 'name');
     },
 };
 

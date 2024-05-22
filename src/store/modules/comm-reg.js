@@ -39,6 +39,16 @@ const getters = {
     formFile : state => state.formFile,
     id : state => state.data.internalid,
     formFileUrl : state => state.formFileUrl,
+
+    outdatedCommencementDate : state => {
+        if (!state.data.custrecord_comm_date) return true;
+
+        let commDate = new Date(state.data.custrecord_comm_date.split('/').reverse().join('-'))
+        let today = new Date();
+        today.setHours(0, 0, 0);
+
+        return commDate <= today;
+    }
 };
 
 const mutations = {
@@ -53,7 +63,7 @@ const mutations = {
 
 const actions = {
     init : async context => {
-        if (!context.rootGetters['customerId'] || !context.rootGetters['salesRecordId'] || context.rootGetters['callCenterMode'])
+        if (!context.rootGetters['customerId'] || !context.rootGetters['salesRecordId'])
             return;
 
         try {

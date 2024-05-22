@@ -117,13 +117,22 @@
             </div>
 
             <div class="col-3">
+
                 <template v-if="$store.getters['customer/status'] !== 13">
-                    <div class="col-12 mb-3 d-grid" v-if="$store.getters['customer/status'] !== 32">
-                        <b-button variant="success" @click="open('call-center/setCustomerAsFreeTrial', 'Free Trial (Customer - Free Trial)')">
+
+                    <div class="col-12 mb-3 d-grid" v-if="$store.getters['customer/status'] !== 71">
+                        <b-button variant="success" @click="open('call-center/setCustomerAsFreeTrial', 'Free Trial (Customer - Free Trial Pending)')">
                             Free Trial
-                            <p class="status-text">(Customer - Free Trial)</p>
+                            <p class="status-text">(Customer - Free Trial Pending)</p>
                         </b-button>
                     </div>
+                    <div class="col-12 mb-3 d-grid" v-else-if="$store.getters['comm-reg/outdatedCommencementDate']">
+                        <b-button variant="warning" @click="open('call-center/setCustomerAsFreeTrial', 'Restart Free Trial (Customer - Free Trial Pending)')">
+                            Restart Free Trial
+                            <p class="status-text">(Customer - Free Trial Pending)</p>
+                        </b-button>
+                    </div>
+
                     <div class="col-12 mb-3 d-grid">
                         <b-button variant="success" @click="open('call-center/sendEmailSigned', 'Signed (Customer - To be Finalised)')">
                             Signed
