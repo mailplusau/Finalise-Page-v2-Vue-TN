@@ -26,7 +26,7 @@
                 </b-input-group>
             </div>
             <div class="col-6 mb-4">
-                <b-input-group prepend="Invoice Cycle">
+                <b-input-group prepend="Product Invoicing Cycle">
                     <b-form-select v-model="form.custentity_mpex_invoicing_cycle" :options="invoiceCycles"
                                    :disabled="formDisabled || busy"></b-form-select>
                 </b-input-group>

@@ -859,13 +859,7 @@ const postOperations = {
 
         _writeResponseJson(response, sharedFunctions.createSalesRecord(salesRecordData));
     },
-    'reassignSalesRecordToEmployee' : function (response, {salesRecordId}) {
-        // re-assigned to David Daoud (1809334)
-        NS_MODULES.record['submitFields']({type: 'customrecord_sales', id: salesRecordId, values: {'custrecord_sales_assigned': 1809334}});
-
-        _writeResponseJson(response, 'Sales Record re-assigned.');
-    },
-    'resendCreatePortalPasswordEmail' : function (response, {customerId, contactId}) {
+    'resendCreatePortalPasswordEmail' : function (response, {customerId, contactId})    {
         let {record, task, log} = NS_MODULES;
 
         let contactRecord = record.load({
